@@ -1,8 +1,13 @@
 /***************************************************************************//**
  * @file     main.c
- * @brief
- *           Demonstrate how to upgrade firmware between USB device and PC through USB DFU (Device Firmware Upgrade) class.
- *           A Windows tool is also included in this sample code to connect with USB device.
+ * @brief    DFU bootloader for Ducky One 2 SF (DKON1967ST)
+ *           Modified from Nuvoton DFU sample by giannello.
+ *           Adapted for NUC123SD4AN0 / Ducky One 2 SF matrix pinout.
+ *
+ *           Enter DFU mode by holding ESCAPE while plugging in the keyboard.
+ *           Escape key: row PD11 (row 0), col PB10 (col 0)
+ *
+ *           After flashing, the bootloader automatically boots APROM.
  *
  * @copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
@@ -10,38 +15,40 @@
 #include "NUC123.h"
 #include "fmc_user.h"
 #include "dfu_transfer.h"
+#include "clk.h"
+#include "usbd.h"
 
 #define PLLCON_SETTING    CLK_PLLCON_144MHz_HXT
 #define PLL_CLOCK         144000000
 
-#define DetectPin     PD0
-#define RestartPin    PD1
-
-#define ISPLED   PB8
-#define LDROMLED PD2
-#define APROMLED PD3
+/*
+ * Ducky One 2 SF matrix pins (from QMK info.json):
+ *   Rows: D11, B4, B5, B6, B7
+ *   Cols: B10, B9, C13, C12, C11, C10, C9, C8, A15, A14, A13, D0, D1, D2, B15, B8
+ *   Diode direction: COL2ROW
+ *
+ * Escape key: matrix [0,0] -> row 0 = PD11, col 0 = PB10
+ *
+ * GPIO PMD register: 2 bits per pin
+ *   00 = input, 01 = output, 10 = open-drain, 11 = quasi-bidirectional (pull-up)
+ * PD11 = bits [23:22] of PD->PMD
+ * PB10 = bits [21:20] of PB->PMD
+ */
 
 uint32_t g_romSize;
 uint8_t g_reset = 0;
 
 uint32_t GetRomSize()
 {
-    //the smallest of APROM size is 2K
     uint32_t size = 0x800, data;
     int result;
-
     do
     {
         result = FMC_Read_User(size, &data);
-
         if(result < 0)
-        {
             return size;
-        }
         else
-        {
             size *= 2;
-        }
     }
     while(1);
 }
@@ -51,55 +58,65 @@ uint8_t isLDROM()
     return !!(FMC->ISPCON & FMC_ISPCON_BS_Msk);
 }
 
+/*
+ * Check if Escape is held using direct register access.
+ * Avoids pulling in gpio.c to save space.
+ *
+ * COL2ROW: drive row PD11 low, read col PB10 with pull-up.
+ * If pressed, PB10 reads low.
+ */
+uint8_t isEscapePressed(void)
+{
+    uint8_t pressed;
+
+    /* Set PD11 as output (PMD bits [23:22] = 01) */
+    PD->PMD = (PD->PMD & ~(0x3UL << 22)) | (0x1UL << 22);
+    /* Drive PD11 low */
+    PD->DOUT &= ~(1UL << 11);
+
+    /* Set PB10 as quasi-bidirectional/pull-up (PMD bits [21:20] = 11) */
+    PB->PMD = (PB->PMD & ~(0x3UL << 20)) | (0x3UL << 20);
+
+    /* Settle delay */
+    CLK_SysTickDelay(500);
+
+    /* Read PB10 — low means key pressed */
+    pressed = !((PB->PIN >> 10) & 1);
+
+    /* Restore both pins to quasi-bidirectional */
+    PD->PMD = (PD->PMD & ~(0x3UL << 22)) | (0x3UL << 22);
+    PB->PMD = (PB->PMD & ~(0x3UL << 20)) | (0x3UL << 20);
+
+    return pressed;
+}
+
 void SYS_Init(void)
 {
-    /* Enable XT1_OUT (PF.0) and XT1_IN (PF.1) */
-    SYS->GPF_MFP &= ~(SYS_GPF_MFP_PF0_Msk | SYS_GPF_MFP_PF1_Msk);
-    SYS->GPF_MFP |= SYS_GPF_MFP_PF0_XT1_OUT | SYS_GPF_MFP_PF1_XT1_IN;
+    /* USB D- (PA.14) and D+ (PA.15) */
+    SYS->GPA_MFPH = (SYS->GPA_MFPH & ~(SYS_GPA_MFPH_GPA14_MFP_Msk | SYS_GPA_MFPH_GPA15_MFP_Msk))
+                  | (0x1UL << SYS_GPA_MFPH_GPA14_MFP_Pos)
+                  | (0x1UL << SYS_GPA_MFPH_GPA15_MFP_Pos);
 
-    /*---------------------------------------------------------------------------------------------------------*/
-    /* Init System Clock                                                                                       */
-    /*---------------------------------------------------------------------------------------------------------*/
+    /*
+     * USB full-speed needs a 48 MHz USB clock.
+     * Use HIRC -> PLL (~48 MHz) -> USB (divide-by-1), HCLK from PLL.
+     */
+    CLK_EnableXtalRC(CLK_PWRCON_OSC22M_EN_Msk);
+    CLK_WaitClockReady(CLK_CLKSTATUS_OSC22M_STB_Msk);
 
-    /* Enable Internal RC 22.1184MHz clock */
-    CLK->PWRCON |= CLK_PWRCON_OSC22M_EN_Msk;
+    CLK_EnablePLL(CLK_PLLCON_48MHz_HIRC, 48000000);
+    CLK_WaitClockReady(CLK_CLKSTATUS_PLL_STB_Msk);
 
-    /* Waiting for Internal RC clock ready */
-    while(!(CLK->CLKSTATUS & CLK_CLKSTATUS_OSC22M_STB_Msk));
+    CLK_SetHCLK(CLK_CLKSEL0_HCLK_S_PLL, CLK_CLKDIV_HCLK(1));
+    CLK_SetModuleClock(USBD_MODULE, 0, CLK_CLKDIV_USB(1));
+    CLK_EnableModuleClock(USBD_MODULE);
 
-    /* Enable external XTAL 12 MHz clock */
-    CLK->PWRCON |= CLK_PWRCON_XTL12M_EN_Msk;
-
-    /* Waiting for external XTAL clock ready */
-    while(!(CLK->CLKSTATUS & CLK_CLKSTATUS_XTL12M_STB_Msk));
-
-    /* Select HCLK clock source as HIRC and HCLK clock divider as 1 */
-    CLK->CLKSEL0 = (CLK->CLKSEL0 & (~CLK_CLKSEL0_HCLK_S_Msk)) | CLK_CLKSEL0_HCLK_S_HIRC;
-    CLK->CLKDIV = (CLK->CLKDIV & (~CLK_CLKDIV_HCLK_N_Msk)) | CLK_CLKDIV_HCLK(1);
-
-    /* Set core clock as PLL_CLOCK from PLL */
-    CLK->PLLCON = PLLCON_SETTING;
-
-    while(!(CLK->CLKSTATUS & CLK_CLKSTATUS_PLL_STB_Msk));
-
-    CLK->CLKDIV = (CLK->CLKDIV & (~CLK_CLKDIV_HCLK_N_Msk)) | CLK_CLKDIV_HCLK(2);
-    CLK->CLKSEL0 = (CLK->CLKSEL0 & (~CLK_CLKSEL0_HCLK_S_Msk)) | CLK_CLKSEL0_HCLK_S_PLL;
-
-    /* Update System Core Clock */
-    PllClock        = PLL_CLOCK;                // PLL
-    SystemCoreClock = PLL_CLOCK / 2;            // HCLK
-    CyclesPerUs     = PLL_CLOCK / 2 / 1000000;  // For CLK_SysTickDelay()
-
-    /* Enable module clock */
-    CLK->APBCLK |= CLK_APBCLK_USBD_EN_Msk;
-    CLK->CLKDIV = (CLK->CLKDIV & (~CLK_CLKDIV_USB_N_Msk)) | CLK_CLKDIV_USB(3);
+    SystemCoreClockUpdate();
 }
 
 void USBD_IRQHandler(void);
-/*---------------------------------------------------------------------------------------------------------*/
-/*  Main Function                                                                                          */
-/*---------------------------------------------------------------------------------------------------------*/
-int32_t main(void)
+
+int main(void)
 {
     /* Unlock write-protected registers */
     SYS_UnlockReg();
@@ -107,50 +124,45 @@ int32_t main(void)
     /* Init system and multi-function I/O */
     SYS_Init();
 
-    // If we press the "enter bootloader" button OR we arrived here after a MCU restart, enter DFU mode
-    if (DetectPin == 0 || (SYS->RSTSRC & SYS_RSTSRC_RSTS_SYS_Msk)) {
-        /* Prepare the device for ISP */
-        // Initialize clock
+    /*
+     * Enter DFU mode if:
+     *   1. Escape is held at plug-in, OR
+     *   2. We got here via software system reset (QK_BOOT from QMK)
+     */
+    // if (isEscapePressed() || (SYS->RSTSRC & SYS_RSTSRC_RSTS_SYS_Msk))
+    if (1)
+    {
         CLK->AHBCLK |= CLK_AHBCLK_ISP_EN_Msk;
         FMC->ISPCON |= FMC_ISPCON_ISPEN_Msk | FMC_ISPCON_APUEN_Msk | FMC_ISPCON_ISPFF_Msk;
-        g_romSize = GetRomSize();
+        
+        g_romSize = 0x8000;  /* 32KB APROM */
 
-        /* Open USB controller */
         USBD_Open(&gsInfo, DFU_ClassRequest, NULL);
-
-        /*Init Endpoint configuration for DFU */
         DFU_Init();
-
-        /* Start USB device */
+        NVIC_EnableIRQ(USBD_IRQn);
         USBD_Start();
 
-        // Turn on ISPLED to show we're in DFU mode
-        ISPLED = 0;
+        USBD_SET_DATA1(EP1);
+        USBD_SET_PAYLOAD_LEN(EP1, EP0_MAX_PKT_SIZE);
 
-        // Turn on LDROMLED if we booted from LDROM
-        LDROMLED = !isLDROM();
-        // Turn on APROMLED if we booted from APROM
-        APROMLED = isLDROM();
-
-        /* polling USBD interrupt flag */
-        while(RestartPin != 0 && !g_reset)
+        /* Poll USB (works even if interrupt delivery is delayed) */
+        while(!g_reset)
         {
             USBD_IRQHandler();
         }
     }
 
-    // Clear reset bits
+    /* Clear reset source bits */
     SYS->RSTSRC = (SYS_RSTSRC_RSTS_POR_Msk | SYS_RSTSRC_RSTS_RESET_Msk);
-    // Disable ISP
-    FMC->ISPCON &=  ~(FMC_ISPCON_ISPEN_Msk);
-    // Always boot from the other partition
-    FMC->ISPCON ^= FMC_ISPCON_BS_Msk;
 
-    // MCU reset
+    /* Disable ISP */
+    FMC->ISPCON &= ~(FMC_ISPCON_ISPEN_Msk);
+
+    /* Boot from APROM */
+    FMC->ISPCON &= ~(FMC_ISPCON_BS_Msk);
+
+    /* Reset into APROM */
     NVIC_SystemReset();
 
-    /* Trap the CPU */
     while(1);
 }
-
-/*** (C) COPYRIGHT 2019 Nuvoton Technology Corp. ***/

@@ -1,216 +1,256 @@
-;/*---------------------------------------------------------------------------------------------------------*/
-;/*                                                                                                         */
-;/* Copyright(c) 2019 Nuvoton Technology Corp. All rights reserved.                                         */
-;/*                                                                                                         */
-;/*---------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------*/
+/*                                                                                                         */
+/* Copyright(c) 2019 Nuvoton Technology Corp. All rights reserved.                                         */
+/*                                                                                                         */
+/*---------------------------------------------------------------------------------------------------------*/
+
+    .syntax unified
+    .cpu cortex-m0
+    .thumb
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    .section .stack, "w"
+    .align 3
+#ifdef Stack_Size
+    .equ Stack_Size, Stack_Size
+#else
+    .equ Stack_Size, 0x00000400
+#endif
+    .globl __initial_sp
+    .space Stack_Size
+__initial_sp:
 
-    ; User may overwrite stack size setting by pre-defined symbol
-    IF :LNOT: :DEF: Stack_Size
-Stack_Size      EQU     0x00000400
-    ENDIF
-                AREA    STACK, NOINIT, READWRITE, ALIGN=3
-Stack_Mem       SPACE   Stack_Size
-__initial_sp
+    .section .heap, "w"
+    .align 3
+#ifdef Heap_Size
+    .equ Heap_Size, Heap_Size
+#else
+    .equ Heap_Size, 0x00000000
+#endif
+    .globl __heap_base
+__heap_base:
+    .space Heap_Size
+__heap_limit:
 
+    .section .isr_vector, "a"
+    .align 2
+    .globl __Vectors
+__Vectors:
+    .word __initial_sp              @ Top of Stack
+    .word Reset_Handler             @ Reset Handler
+    .word NMI_Handler               @ NMI Handler
+    .word HardFault_Handler         @ Hard Fault Handler
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word SVC_Handler               @ SVCall Handler
+    .word 0                         @ Reserved
+    .word 0                         @ Reserved
+    .word PendSV_Handler            @ PendSV Handler
+    .word SysTick_Handler           @ SysTick Handler
 
-; <h> Heap Configuration
-;   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
-; </h>
+    @ External Interrupts
+    .word BOD_IRQHandler            @ 0  BOD
+    .word WDT_IRQHandler            @ 1  WDT
+    .word EINT0_IRQHandler          @ 2  EINT0
+    .word EINT1_IRQHandler          @ 3  EINT1
+    .word GPAB_IRQHandler           @ 4  GPIO PA/PB
+    .word GPCDF_IRQHandler          @ 5  GPIO PC/PD/PF
+    .word PWMA_IRQHandler           @ 6  PWMA
+    .word 0                         @ 7  Reserved
+    .word TMR0_IRQHandler           @ 8  TIMER0
+    .word TMR1_IRQHandler           @ 9  TIMER1
+    .word TMR2_IRQHandler           @ 10 TIMER2
+    .word TMR3_IRQHandler           @ 11 TIMER3
+    .word UART0_IRQHandler          @ 12 UART0
+    .word UART1_IRQHandler          @ 13 UART1
+    .word SPI0_IRQHandler           @ 14 SPI0
+    .word SPI1_IRQHandler           @ 15 SPI1
+    .word SPI2_IRQHandler           @ 16 SPI2
+    .word 0                         @ 17 Reserved
+    .word I2C0_IRQHandler           @ 18 I2C0
+    .word I2C1_IRQHandler           @ 19 I2C1
+    .word CAN0_IRQHandler           @ 20 CAN0
+    .word CAN1_IRQHandler           @ 21 CAN1
+    .word 0                         @ 22 Reserved
+    .word USBD_IRQHandler           @ 23 USBD
+    .word PS2_IRQHandler            @ 24 PS2
+    .word 0                         @ 25 Reserved
+    .word PDMA_IRQHandler           @ 26 PDMA
+    .word I2S_IRQHandler            @ 27 I2S
+    .word PWRWU_IRQHandler          @ 28 PWRWU
+    .word ADC_IRQHandler            @ 29 ADC
+    .word IRC_IRQHandler            @ 30 IRC
 
-    IF :LNOT: :DEF: Heap_Size
-Heap_Size       EQU     0x00000000
-    ENDIF
+    .section .text
+    .thumb
 
-                AREA    HEAP, NOINIT, READWRITE, ALIGN=3
-__heap_base
-Heap_Mem        SPACE   Heap_Size
-__heap_limit
+    .globl Reset_Handler
+    .type Reset_Handler, %function
+Reset_Handler:
+    @ Unlock Register
+    ldr r0, =0x50000100
+    movs r1, #0x59
+    str r1, [r0]
+    movs r1, #0x16
+    str r1, [r0]
+    movs r1, #0x88
+    str r1, [r0]
 
+    @ Init POR
+    ldr r2, =0x50000024
+    ldr r1, =0x5AA5
+    str r1, [r2]
 
-                PRESERVE8
-                THUMB
+    @ Lock register
+    movs r1, #0
+    str r1, [r0]
 
+    @ Copy .data section from LDROM to SRAM
+    ldr r0, =_sidata      @ Load address of .data in LDROM
+    ldr r1, =_sdata       @ Runtime address of .data in SRAM
+    ldr r2, =_edata       @ End address of .data in SRAM
+copy_loop:
+    cmp r1, r2
+    beq copy_done
+    ldr r3, [r0]
+    str r3, [r1]
+    adds r0, r0, #4
+    adds r1, r1, #4
+    b copy_loop
+copy_done:
 
-; Vector Table Mapped to Address 0 at Reset
-                AREA    RESET, DATA, READONLY
-                EXPORT  __Vectors
+    @ Zero .bss
+    ldr r1, =_sbss
+    ldr r2, =_ebss
+    movs r0, #0
+    cmp r1, r2
+    beq bss_done
+bss_loop:
+    str r0, [r1]
+    adds r1, r1, #4
+    cmp r1, r2
+    bcc bss_loop
+bss_done:
 
-__Vectors       DCD     __initial_sp              ; Top of Stack
-                DCD     Reset_Handler             ; Reset Handler
-                DCD     NMI_Handler               ; NMI Handler
-                DCD     HardFault_Handler         ; Hard Fault Handler
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     SVC_Handler               ; SVCall Handler
-                DCD     0                         ; Reserved
-                DCD     0                         ; Reserved
-                DCD     PendSV_Handler            ; PendSV Handler
-                DCD     SysTick_Handler           ; SysTick Handler
+    @ Call SystemInit
+    bl SystemInit
 
-                ; External Interrupts
+    @ Call main
+    bl main
 
-                AREA    |.text|, CODE, READONLY
-                
-                
-                
-; Reset Handler 
-                
-                ENTRY
-                
-Reset_Handler   PROC
-                EXPORT  Reset_Handler             [WEAK]
-                IMPORT  SystemInit
-                IMPORT  __main
+    @ Trap if main returns
+    b .
 
-                LDR     R0, =0x50000100
-                ; Unlock Register                
-                LDR     R1, =0x59
-                STR     R1, [R0]
-                LDR     R1, =0x16
-                STR     R1, [R0]
-                LDR     R1, =0x88
-                STR     R1, [R0]
+    .size Reset_Handler, .-Reset_Handler
 
-                ; Init POR
-                LDR     R2, =0x50000024
-                LDR     R1, =0x00005AA5
-                STR     R1, [R2]
+@ Dummy Exception Handlers (infinite loops)
 
-                ; Lock register
-                MOVS    R1, #0
-                STR     R1, [R0]                
-                
-                LDR     R0, =SystemInit
-                BLX     R0
-                LDR     R0, =__main
-                BX      R0
-                ENDP
-                
-                
-; Dummy Exception Handlers (infinite loops which can be modified)                
-                
-NMI_Handler     PROC
-                EXPORT  NMI_Handler               [WEAK]
-                B       .
-                ENDP
-HardFault_Handler\
-                PROC
-                EXPORT  HardFault_Handler         [WEAK]
-                B       .
-                ENDP
-SVC_Handler     PROC
-                EXPORT  SVC_Handler               [WEAK]
-                B       .
-                ENDP
-PendSV_Handler  PROC
-                EXPORT  PendSV_Handler            [WEAK]
-                B       .
-                ENDP
-SysTick_Handler PROC
-                EXPORT  SysTick_Handler           [WEAK]
-                B       .
-                ENDP
+    .weak NMI_Handler
+    .thumb_set NMI_Handler, Default_Handler
 
-Default_Handler PROC
+    .weak HardFault_Handler
+    .thumb_set HardFault_Handler, Default_Handler
 
-                EXPORT  BOD_IRQHandler            [WEAK]
-                EXPORT  WDT_IRQHandler            [WEAK]
-                EXPORT  EINT0_IRQHandler          [WEAK]
-                EXPORT  EINT1_IRQHandler          [WEAK]
-                EXPORT  GPAB_IRQHandler           [WEAK]
-                EXPORT  GPCDF_IRQHandler          [WEAK]
-                EXPORT  PWMA_IRQHandler           [WEAK]
-                EXPORT  TMR0_IRQHandler           [WEAK]
-                EXPORT  TMR1_IRQHandler           [WEAK]
-                EXPORT  TMR2_IRQHandler           [WEAK]
-                EXPORT  TMR3_IRQHandler           [WEAK]
-                EXPORT  UART0_IRQHandler          [WEAK]
-                EXPORT  UART1_IRQHandler          [WEAK]
-                EXPORT  SPI0_IRQHandler           [WEAK]
-                EXPORT  SPI1_IRQHandler           [WEAK]
-                EXPORT  SPI2_IRQHandler           [WEAK]
-                EXPORT  SPI3_IRQHandler           [WEAK]
-                EXPORT  I2C0_IRQHandler           [WEAK]
-                EXPORT  I2C1_IRQHandler           [WEAK]
-                EXPORT  CAN0_IRQHandler           [WEAK]
-                EXPORT  CAN1_IRQHandler           [WEAK] 
-                EXPORT  SC012_IRQHandler          [WEAK]                               
-                EXPORT  USBD_IRQHandler           [WEAK]
-                EXPORT  PS2_IRQHandler            [WEAK]
-                EXPORT  ACMP_IRQHandler           [WEAK]
-                EXPORT  PDMA_IRQHandler           [WEAK]
-				EXPORT  I2S_IRQHandler            [WEAK]
-                EXPORT  PWRWU_IRQHandler          [WEAK]
-                EXPORT  ADC_IRQHandler            [WEAK]
-                EXPORT  RTC_IRQHandler            [WEAK]
-                
-BOD_IRQHandler
-WDT_IRQHandler
-EINT0_IRQHandler
-EINT1_IRQHandler
-GPAB_IRQHandler
-GPCDF_IRQHandler
-PWMA_IRQHandler
-TMR0_IRQHandler
-TMR1_IRQHandler
-TMR2_IRQHandler
-TMR3_IRQHandler
-UART0_IRQHandler
-UART1_IRQHandler
-SPI0_IRQHandler
-SPI1_IRQHandler
-SPI2_IRQHandler
-SPI3_IRQHandler
-I2C0_IRQHandler
-I2C1_IRQHandler
-CAN0_IRQHandler
-CAN1_IRQHandler
-SC012_IRQHandler
-USBD_IRQHandler
-PS2_IRQHandler
-ACMP_IRQHandler
-PDMA_IRQHandler
-I2S_IRQHandler
-PWRWU_IRQHandler
-ADC_IRQHandler
-RTC_IRQHandler
-                B       .
-                ENDP
+    .weak SVC_Handler
+    .thumb_set SVC_Handler, Default_Handler
 
+    .weak PendSV_Handler
+    .thumb_set PendSV_Handler, Default_Handler
 
-                ALIGN
+    .weak SysTick_Handler
+    .thumb_set SysTick_Handler, Default_Handler
 
+    .weak BOD_IRQHandler
+    .thumb_set BOD_IRQHandler, Default_Handler
 
-; User Initial Stack & Heap
+    .weak WDT_IRQHandler
+    .thumb_set WDT_IRQHandler, Default_Handler
 
-                IF      :DEF:__MICROLIB
-                
-                EXPORT  __initial_sp
-                EXPORT  __heap_base
-                EXPORT  __heap_limit
-                
-                ELSE
-                
-                IMPORT  __use_two_region_memory
-                EXPORT  __user_initial_stackheap
-__user_initial_stackheap
+    .weak EINT0_IRQHandler
+    .thumb_set EINT0_IRQHandler, Default_Handler
 
-                LDR     R0, =  Heap_Mem
-                LDR     R1, = (Stack_Mem + Stack_Size)
-                LDR     R2, = (Heap_Mem +  Heap_Size)
-                LDR     R3, = Stack_Mem
-                BX      LR
+    .weak EINT1_IRQHandler
+    .thumb_set EINT1_IRQHandler, Default_Handler
 
-                ALIGN
+    .weak GPAB_IRQHandler
+    .thumb_set GPAB_IRQHandler, Default_Handler
 
-                ENDIF
+    .weak GPCDF_IRQHandler
+    .thumb_set GPCDF_IRQHandler, Default_Handler
 
-                END
+    .weak PWMA_IRQHandler
+    .thumb_set PWMA_IRQHandler, Default_Handler
+
+    .weak TMR0_IRQHandler
+    .thumb_set TMR0_IRQHandler, Default_Handler
+
+    .weak TMR1_IRQHandler
+    .thumb_set TMR1_IRQHandler, Default_Handler
+
+    .weak TMR2_IRQHandler
+    .thumb_set TMR2_IRQHandler, Default_Handler
+
+    .weak TMR3_IRQHandler
+    .thumb_set TMR3_IRQHandler, Default_Handler
+
+    .weak UART0_IRQHandler
+    .thumb_set UART0_IRQHandler, Default_Handler
+
+    .weak UART1_IRQHandler
+    .thumb_set UART1_IRQHandler, Default_Handler
+
+    .weak SPI0_IRQHandler
+    .thumb_set SPI0_IRQHandler, Default_Handler
+
+    .weak SPI1_IRQHandler
+    .thumb_set SPI1_IRQHandler, Default_Handler
+
+    .weak SPI2_IRQHandler
+    .thumb_set SPI2_IRQHandler, Default_Handler
+
+    .weak I2C0_IRQHandler
+    .thumb_set I2C0_IRQHandler, Default_Handler
+
+    .weak I2C1_IRQHandler
+    .thumb_set I2C1_IRQHandler, Default_Handler
+
+    .weak CAN0_IRQHandler
+    .thumb_set CAN0_IRQHandler, Default_Handler
+
+    .weak CAN1_IRQHandler
+    .thumb_set CAN1_IRQHandler, Default_Handler
+
+    .weak USBD_IRQHandler
+    .thumb_set USBD_IRQHandler, Default_Handler
+
+    .weak PS2_IRQHandler
+    .thumb_set PS2_IRQHandler, Default_Handler
+
+    .weak PDMA_IRQHandler
+    .thumb_set PDMA_IRQHandler, Default_Handler
+
+    .weak I2S_IRQHandler
+    .thumb_set I2S_IRQHandler, Default_Handler
+
+    .weak PWRWU_IRQHandler
+    .thumb_set PWRWU_IRQHandler, Default_Handler
+
+    .weak ADC_IRQHandler
+    .thumb_set ADC_IRQHandler, Default_Handler
+
+    .weak IRC_IRQHandler
+    .thumb_set IRC_IRQHandler, Default_Handler
+
+    .globl Default_Handler
+    .type Default_Handler, %function
+Default_Handler:
+    b .
+    .size Default_Handler, .-Default_Handler
+
+    .align 2

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "NUC123.h"
+#include "clk.h"
 
 #if 0
 #define DBG_PRINTF      printf
@@ -103,8 +104,8 @@ extern "C"
       */
     void USBD_Start(void)
     {
+        /* Let host see bus disconnect before reconnect (USB 2.0 spec) */
         CLK_SysTickDelay(100000);
-        /* Disable software-disconnect function */
         USBD_CLR_SE0();
 
         /* Clear USB-related interrupts before enable interrupt */
