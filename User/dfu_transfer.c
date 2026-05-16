@@ -17,10 +17,9 @@ extern uint32_t g_romSize;
 extern uint8_t g_reset;
 #define APROM_BLOCK_NUM         ((g_romSize/TRANSFER_SIZE)-1)
 
-uint32_t command_Count = 0;
 uint8_t manifest_state = MANIFEST_COMPLETE;
 dfu_status_struct dfu_status;
-s_prog_struct prog_struct __attribute__((aligned(4))) = {{0}, 0, 0, APP_LOADED_ADDR};
+s_prog_struct prog_struct __attribute__((aligned(4), section(".bss"))) = {0};
 
 void USBD_IRQHandler(void)
 {
@@ -56,6 +55,19 @@ void USBD_IRQHandler(void)
             /* Bus reset */
             USBD_ENABLE_USB();
             USBD_SwReset();
+            
+            /* Reconfigure endpoints after reset - hardware clears endpoint config on bus reset */
+            /* EP0 ==> control IN endpoint, address 0 */
+            USBD_CONFIG_EP(EP0, USBD_CFG_CSTALL | USBD_CFG_EPMODE_IN | 0);
+            USBD_SET_EP_BUF_ADDR(EP0, EP0_BUF_BASE);
+            
+            /* EP1 ==> control OUT endpoint, address 0 */
+            USBD_CONFIG_EP(EP1, USBD_CFG_CSTALL | USBD_CFG_EPMODE_OUT | 0);
+            USBD_SET_EP_BUF_ADDR(EP1, EP1_BUF_BASE);
+            
+            /* Prepare to receive setup packet */
+            USBD_SET_DATA1(EP1);
+            USBD_SET_PAYLOAD_LEN(EP1, EP0_MAX_PKT_SIZE);
         }
 
         if(u32State & USBD_STATE_SUSPEND)
@@ -123,6 +135,12 @@ void USBD_IRQHandler(void)
   * @retval None.
   */
 
+static void DFU_ReplyStatus(void)
+{
+    USBD_PrepareCtrlIn((uint8_t *)&dfu_status, 6);
+    USBD_PrepareCtrlOut(0, 0);
+}
+
 void DFU_Init(void)
 {
     /* Init setup packet buffer */
@@ -168,43 +186,21 @@ void DFU_ClassRequest(void)
             {
                 if(dfu_status.bState == STATE_dfuDNLOAD_SYNC)
                 {
-                    command_Count++;
-
-                    if(command_Count == 5)
-                    {
-                        dfu_status.bState = STATE_dfuDNLOAD_IDLE;
-
-                        WriteData(prog_struct.block_num * TRANSFER_SIZE, (prog_struct.block_num * TRANSFER_SIZE) + prog_struct.data_len, (uint32_t *)prog_struct.buf);
-                        //dfu_status.bStatus = STATUS_errWRITE;
-
-                        command_Count = 0;
-                    }
+                    SET_POLLING_TIMEOUT(FLASH_WRITE_TIMEOUT);
+                    WriteData(prog_struct.block_num * TRANSFER_SIZE,
+                              (prog_struct.block_num * TRANSFER_SIZE) + prog_struct.data_len,
+                              (uint32_t *)prog_struct.buf);
+                    dfu_status.bStatus = STATUS_OK;
+                    dfu_status.bState = STATE_dfuDNLOAD_IDLE;
                 }
-
-                if(dfu_status.bState == STATE_dfuDNLOAD_IDLE)
+                else if(dfu_status.bState == STATE_dfuMANIFEST_SYNC)
                 {
-                    command_Count++;
-
-                    if(command_Count == 5)
-                    {
-                        dfu_status.bState = STATE_dfuMANIFEST_SYNC;
-                        command_Count = 0;
-                    }
+                    manifest_state = MANIFEST_COMPLETE;
+                    dfu_status.bStatus = STATUS_OK;
+                    dfu_status.bState = STATE_dfuIDLE;
                 }
 
-                if(dfu_status.bState == STATE_dfuMANIFEST_SYNC)
-                {
-                    command_Count++;
-
-                    if(command_Count == 5)
-                    {
-                        dfu_status.bState = STATE_dfuIDLE;
-                        command_Count = 0;
-                    }
-                }
-
-                USBD_PrepareCtrlIn((uint8_t *)&dfu_status.bStatus, 6);
-                USBD_PrepareCtrlOut(0, 0);
+                DFU_ReplyStatus();
                 break;
             }
 
@@ -282,7 +278,7 @@ void DFU_ClassRequest(void)
                     default:
                         break;
                 }
-
+                break;
             }
 
             case DFU_DNLOAD:
@@ -306,9 +302,13 @@ void DFU_ClassRequest(void)
 
                         }
 
-                        /* enable EP0 prepare receive the buffer */
+                        SET_POLLING_TIMEOUT(FLASH_WRITE_TIMEOUT);
                         USBD_PrepareCtrlOut((uint8_t *)prog_struct.buf, wLength);
                         USBD_PrepareCtrlIn(0, 0);
+                        break;
+
+                    default:
+                        USBD_SetStall(0);
                         break;
                 }
 
@@ -318,18 +318,11 @@ void DFU_ClassRequest(void)
 
             case DFU_CLRSTATUS:
             {
-                //  if (STATE_dfuERROR == dfu_status.bState) {
                 dfu_status.bStatus = STATUS_OK;
                 dfu_status.bState = STATE_dfuIDLE;
-                // } //else {
-                /* state Error */
-                // dfu_status.bStatus = STATUS_errUNKNOWN;
-                // dfu_status.bState = STATE_dfuERROR;
-                // }
-
-                dfu_status.iString = 0; /* iString: index = 0 */
+                dfu_status.iString = 0;
+                DFU_ReplyStatus();
                 break;
-
             }
 
 
@@ -353,7 +346,7 @@ void DFU_ClassRequest(void)
                     default:
                         break;
                 }
-
+                break;
             }
 
 
