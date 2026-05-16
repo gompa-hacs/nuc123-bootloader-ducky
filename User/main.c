@@ -37,8 +37,6 @@
 
 uint32_t g_romSize;
 uint8_t g_reset = 0;
-extern volatile uint8_t g_write_pending;
-
 extern s_prog_struct prog_struct;
 extern dfu_status_struct dfu_status;
 
@@ -133,8 +131,7 @@ int main(void)
      *   1. Escape is held at plug-in, OR
      *   2. We got here via software system reset (QK_BOOT from QMK)
      */
-    // if (isEscapePressed() || (SYS->RSTSRC & SYS_RSTSRC_RSTS_SYS_Msk))
-    if (1)
+    if (isEscapePressed() || (SYS->RSTSRC & SYS_RSTSRC_RSTS_SYS_Msk))
     {
         CLK->AHBCLK |= CLK_AHBCLK_ISP_EN_Msk;
         FMC->ISPCON |= FMC_ISPCON_ISPEN_Msk | FMC_ISPCON_APUEN_Msk | FMC_ISPCON_ISPFF_Msk;
@@ -142,46 +139,14 @@ int main(void)
         g_romSize = 0x8000;  /* 32KB APROM */
 
         USBD_Open(&gsInfo, DFU_ClassRequest, NULL);
-        
-        NVIC_EnableIRQ(USBD_IRQn);
-        
-        /* Enable USB controller with proper bit settings */
-        USBD->ATTR = (USBD->ATTR & ~USBD_ATTR_DPPU_EN_Msk) | USBD_DPPU_EN;
-        USBD_ENABLE_USB();
-        
-        /* Software reset USB controller to ensure clean state */
-        USBD_SwReset();
-        
-        /* Re-enable USB after reset - SW reset clears ATTR */
-        USBD->ATTR = (USBD->ATTR & ~USBD_ATTR_DPPU_EN_Msk) | USBD_DPPU_EN;
-        USBD_ENABLE_USB();
-        
-        USBD_Start();
-        
-        /* Initialize endpoints AFTER USB is enabled */
         DFU_Init();
-        /* Note: Control OUT is prepared in DFU_DNLOAD handler after SETUP packet arrives */
+        /* Internal D+ pull-up — required for host to enumerate (0x7D0 has DPPU off) */
+        USBD_ENABLE_USB();
+        USBD->ATTR |= USBD_DPPU_EN;
+        USBD_Start();
 
-        /* Wait for reset signal - USB processing handled by interrupts */
         while(!g_reset)
-        {
-            if(g_write_pending)
-            {
-                g_write_pending = 0;
-                /* Write data to flash */
-                WriteData(prog_struct.block_num * TRANSFER_SIZE,
-                        (prog_struct.block_num * TRANSFER_SIZE) + prog_struct.data_len,
-                        (uint32_t *)prog_struct.buf);
-                dfu_status.bStatus = STATUS_OK;
-                dfu_status.bState  = STATE_dfuDNLOAD_IDLE;
-                
-                /* Send ZLP to signal completion - host will poll GETSTATUS next */
-                // USBD_PrepareCtrlIn(0, 0);
-            }
-            
-            /* Enter low power mode while waiting */
-            __WFI();
-        }
+            USBD_IRQHandler();
     }
 
     /* Clear reset source bits */

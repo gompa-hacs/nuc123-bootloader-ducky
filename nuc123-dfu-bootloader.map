@@ -1,18 +1,26 @@
 Archive member included to satisfy reference by file (symbol)
 
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
-                              /tmp/ccMxprlX.ltrans0.ltrans.o (__gnu_thumb1_case_sqi)
+                              /tmp/ccFAQIEM.ltrans0.ltrans.o (__gnu_thumb1_case_sqi)
+/usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+                              /tmp/ccFAQIEM.ltrans0.ltrans.o (__gnu_thumb1_case_uqi)
+/usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+                              /tmp/ccFAQIEM.ltrans0.ltrans.o (__gnu_thumb1_case_shi)
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
-                              /tmp/ccMxprlX.ltrans0.ltrans.o (__aeabi_uidiv)
+                              /tmp/ccFAQIEM.ltrans0.ltrans.o (__aeabi_uidiv)
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
                               /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o) (__aeabi_idiv0)
 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
-                              /tmp/ccMxprlX.ltrans0.ltrans.o (memset)
+                              /tmp/ccFAQIEM.ltrans0.ltrans.o (memset)
 
 Discarded input sections
 
  .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
  .bss           0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
+ .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .bss           0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+ .bss           0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
  .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
  .bss           0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
  .data          0x00000000        0x0 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
@@ -33,7 +41,7 @@ SRAM             0x20000000         0x00003000         xrw
 Linker script and memory map
 
 LOAD CMSIS/system_NUC123.o
-LOAD /tmp/ccMxprlX.ltrans0.ltrans.o
+LOAD /tmp/ccFAQIEM.ltrans0.ltrans.o
 LOAD Library/clk.o
 LOAD Library/sys.o
 LOAD User/descriptors.o
@@ -57,84 +65,88 @@ LOAD /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/
 LOAD /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libnosys.a
 END GROUP
 
-.text           0x00100000      0xd10
+.text           0x00100000      0xde0
  *(.isr_vector)
  .isr_vector    0x00100000       0xbc User/startup_NUC123_user.o
                 0x00100000                __Vectors
  *(.text*)
- .text          0x001000bc      0x7cc /tmp/ccMxprlX.ltrans0.ltrans.o
-                0x001004a0                SystemInit
-                0x001004a2                USBD_IRQHandler
- .text.startup  0x00100888      0x2dc /tmp/ccMxprlX.ltrans0.ltrans.o
-                0x00100888                main
- .text          0x00100b64       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
-                0x00100b64                __gnu_thumb1_case_sqi
- .text          0x00100b78       0x8c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
-                0x00100b78                __udivsi3
-                0x00100b78                __aeabi_uidiv
-                0x00100bf0                __aeabi_uidivmod
- .text          0x00100c04        0x4 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
-                0x00100c04                __aeabi_ldiv0
-                0x00100c04                __aeabi_idiv0
- .text.memset   0x00100c08       0x10 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
-                0x00100c08                memset
- .text          0x00100c18       0x6c User/startup_NUC123_user.o
-                0x00100c18                Reset_Handler
-                0x00100c60                GPCDF_IRQHandler
-                0x00100c60                I2C0_IRQHandler
-                0x00100c60                HardFault_Handler
-                0x00100c60                SysTick_Handler
-                0x00100c60                PendSV_Handler
-                0x00100c60                NMI_Handler
-                0x00100c60                I2C1_IRQHandler
-                0x00100c60                UART1_IRQHandler
-                0x00100c60                PS2_IRQHandler
-                0x00100c60                CAN1_IRQHandler
-                0x00100c60                UART0_IRQHandler
-                0x00100c60                SPI1_IRQHandler
-                0x00100c60                TMR0_IRQHandler
-                0x00100c60                IRC_IRQHandler
-                0x00100c60                I2S_IRQHandler
-                0x00100c60                PWRWU_IRQHandler
-                0x00100c60                EINT1_IRQHandler
-                0x00100c60                PWMA_IRQHandler
-                0x00100c60                Default_Handler
-                0x00100c60                ADC_IRQHandler
-                0x00100c60                TMR2_IRQHandler
-                0x00100c60                BOD_IRQHandler
-                0x00100c60                SPI2_IRQHandler
-                0x00100c60                WDT_IRQHandler
-                0x00100c60                SVC_Handler
-                0x00100c60                PDMA_IRQHandler
-                0x00100c60                GPAB_IRQHandler
-                0x00100c60                EINT0_IRQHandler
-                0x00100c60                CAN0_IRQHandler
-                0x00100c60                TMR3_IRQHandler
-                0x00100c60                SPI0_IRQHandler
-                0x00100c60                TMR1_IRQHandler
+ .text          0x001000bc      0x880 /tmp/ccFAQIEM.ltrans0.ltrans.o
+                0x001004c0                SystemInit
+                0x001004c2                USBD_IRQHandler
+ .text.startup  0x0010093c      0x2d0 /tmp/ccFAQIEM.ltrans0.ltrans.o
+                0x0010093c                main
+ .text          0x00100c0c       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
+                0x00100c0c                __gnu_thumb1_case_sqi
+ .text          0x00100c20       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+                0x00100c20                __gnu_thumb1_case_uqi
+ .text          0x00100c34       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+                0x00100c34                __gnu_thumb1_case_shi
+ .text          0x00100c48       0x8c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+                0x00100c48                __udivsi3
+                0x00100c48                __aeabi_uidiv
+                0x00100cc0                __aeabi_uidivmod
+ .text          0x00100cd4        0x4 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+                0x00100cd4                __aeabi_ldiv0
+                0x00100cd4                __aeabi_idiv0
+ .text.memset   0x00100cd8       0x10 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+                0x00100cd8                memset
+ .text          0x00100ce8       0x6c User/startup_NUC123_user.o
+                0x00100ce8                Reset_Handler
+                0x00100d30                GPCDF_IRQHandler
+                0x00100d30                I2C0_IRQHandler
+                0x00100d30                HardFault_Handler
+                0x00100d30                SysTick_Handler
+                0x00100d30                PendSV_Handler
+                0x00100d30                NMI_Handler
+                0x00100d30                I2C1_IRQHandler
+                0x00100d30                UART1_IRQHandler
+                0x00100d30                PS2_IRQHandler
+                0x00100d30                CAN1_IRQHandler
+                0x00100d30                UART0_IRQHandler
+                0x00100d30                SPI1_IRQHandler
+                0x00100d30                TMR0_IRQHandler
+                0x00100d30                IRC_IRQHandler
+                0x00100d30                I2S_IRQHandler
+                0x00100d30                PWRWU_IRQHandler
+                0x00100d30                EINT1_IRQHandler
+                0x00100d30                PWMA_IRQHandler
+                0x00100d30                Default_Handler
+                0x00100d30                ADC_IRQHandler
+                0x00100d30                TMR2_IRQHandler
+                0x00100d30                BOD_IRQHandler
+                0x00100d30                SPI2_IRQHandler
+                0x00100d30                WDT_IRQHandler
+                0x00100d30                SVC_Handler
+                0x00100d30                PDMA_IRQHandler
+                0x00100d30                GPAB_IRQHandler
+                0x00100d30                EINT0_IRQHandler
+                0x00100d30                CAN0_IRQHandler
+                0x00100d30                TMR3_IRQHandler
+                0x00100d30                SPI0_IRQHandler
+                0x00100d30                TMR1_IRQHandler
  *(.rodata*)
- .rodata        0x00100c84       0x8b /tmp/ccMxprlX.ltrans0.ltrans.o
-                0x00100d10                        . = ALIGN (0x4)
- *fill*         0x00100d0f        0x1 
-                0x00100d10                        _etext = .
+ .rodata        0x00100d54       0x8b /tmp/ccFAQIEM.ltrans0.ltrans.o
+                0x00100de0                        . = ALIGN (0x4)
+ *fill*         0x00100ddf        0x1 
+                0x00100de0                        _etext = .
 
-.glue_7         0x00100d10        0x0
- .glue_7        0x00100d10        0x0 linker stubs
+.glue_7         0x00100de0        0x0
+ .glue_7        0x00100de0        0x0 linker stubs
 
-.glue_7t        0x00100d10        0x0
- .glue_7t       0x00100d10        0x0 linker stubs
+.glue_7t        0x00100de0        0x0
+ .glue_7t       0x00100de0        0x0 linker stubs
 
-.vfp11_veneer   0x00100d10        0x0
- .vfp11_veneer  0x00100d10        0x0 linker stubs
+.vfp11_veneer   0x00100de0        0x0
+ .vfp11_veneer  0x00100de0        0x0 linker stubs
 
-.v4_bx          0x00100d10        0x0
- .v4_bx         0x00100d10        0x0 linker stubs
+.v4_bx          0x00100de0        0x0
+ .v4_bx         0x00100de0        0x0 linker stubs
 
-.iplt           0x00100d10        0x0
- .iplt          0x00100d10        0x0 User/startup_NUC123_user.o
+.iplt           0x00100de0        0x0
+ .iplt          0x00100de0        0x0 User/startup_NUC123_user.o
 
-.rel.dyn        0x00100d10        0x0
- .rel.iplt      0x00100d10        0x0 User/startup_NUC123_user.o
+.rel.dyn        0x00100de0        0x0
+ .rel.iplt      0x00100de0        0x0 User/startup_NUC123_user.o
 
 .stack          0x20000000      0x400
                 0x20000000                        . = ALIGN (0x8)
@@ -147,24 +159,25 @@ END GROUP
  *(.heap)
  .heap          0x20000000        0x0 User/startup_NUC123_user.o
 
-.data           0x20000000       0x18 load address 0x00100d10
+.data           0x20000000       0x18 load address 0x00100de0
                 0x20000000                        _sdata = .
  *(.data*)
- .data          0x20000000       0x18 /tmp/ccMxprlX.ltrans0.ltrans.o
+ .data          0x20000000       0x18 /tmp/ccFAQIEM.ltrans0.ltrans.o
                 0x20000018                        . = ALIGN (0x4)
                 0x20000018                        _edata = .
-                0x00100d10                        _sidata = LOADADDR (.data)
+                0x00100de0                        _sidata = LOADADDR (.data)
 
-.igot.plt       0x20000018        0x0 load address 0x00100d28
+.igot.plt       0x20000018        0x0 load address 0x00100df8
  .igot.plt      0x20000018        0x0 User/startup_NUC123_user.o
 
-.bss            0x20000018      0x45c load address 0x00100d28
+.bss            0x20000018      0x464 load address 0x00100df8
                 0x20000018                        _sbss = .
  *(.bss*)
- .bss           0x20000018      0x45c /tmp/ccMxprlX.ltrans0.ltrans.o
+ .bss           0x20000018      0x462 /tmp/ccFAQIEM.ltrans0.ltrans.o
  *(COMMON)
-                0x20000474                        . = ALIGN (0x4)
-                0x20000474                        _ebss = .
+                0x2000047c                        . = ALIGN (0x4)
+ *fill*         0x2000047a        0x2 
+                0x2000047c                        _ebss = .
 
 /DISCARD/
  *(.ARM.exidx*)
@@ -172,68 +185,88 @@ OUTPUT(nuc123-dfu-bootloader.elf elf32-littlearm)
 LOAD linker stubs
 
 .comment        0x00000000       0x1e
- .comment       0x00000000       0x1e /tmp/ccMxprlX.ltrans0.ltrans.o
+ .comment       0x00000000       0x1e /tmp/ccFAQIEM.ltrans0.ltrans.o
                                  0x1f (size before relaxing)
  .comment       0x0000001e       0x1f /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
 .ARM.attributes
                 0x00000000       0x2a
  .ARM.attributes
-                0x00000000       0x2a /tmp/ccMxprlX.ltrans0.ltrans.o
+                0x00000000       0x2a /tmp/ccFAQIEM.ltrans0.ltrans.o
  .ARM.attributes
                 0x0000002a       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
  .ARM.attributes
-                0x00000048       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+                0x00000048       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
  .ARM.attributes
-                0x00000066       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+                0x00000066       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
  .ARM.attributes
-                0x00000084       0x2c /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+                0x00000084       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
  .ARM.attributes
-                0x000000b0       0x21 User/startup_NUC123_user.o
+                0x000000a2       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+ .ARM.attributes
+                0x000000c0       0x2c /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+ .ARM.attributes
+                0x000000ec       0x21 User/startup_NUC123_user.o
 
-.debug_line     0x00000000      0x21a
+.debug_line     0x00000000      0x2bf
  .debug_line    0x00000000       0x52 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
- .debug_line    0x00000052       0x61 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
- .debug_line    0x000000b3       0x4a /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
- .debug_line    0x000000fd      0x11d /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+ .debug_line    0x00000052       0x52 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .debug_line    0x000000a4       0x53 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+ .debug_line    0x000000f7       0x61 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+ .debug_line    0x00000158       0x4a /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+ .debug_line    0x000001a2      0x11d /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
 .debug_line_str
                 0x00000000       0x74
  .debug_line_str
                 0x00000000       0x74 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
  .debug_line_str
+                0x00000074       0x74 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .debug_line_str
+                0x00000074       0x74 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+ .debug_line_str
                 0x00000074       0x74 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
  .debug_line_str
                 0x00000074       0x74 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
 
-.debug_info     0x00000000      0x18a
+.debug_info     0x00000000      0x1ec
  .debug_info    0x00000000       0x31 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
- .debug_info    0x00000031       0x3d /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
- .debug_info    0x0000006e       0x3c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
- .debug_info    0x000000aa       0xe0 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+ .debug_info    0x00000031       0x31 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .debug_info    0x00000062       0x31 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+ .debug_info    0x00000093       0x3d /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+ .debug_info    0x000000d0       0x3c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+ .debug_info    0x0000010c       0xe0 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
-.debug_abbrev   0x00000000      0x114
+.debug_abbrev   0x00000000      0x164
  .debug_abbrev  0x00000000       0x28 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
- .debug_abbrev  0x00000028       0x28 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
- .debug_abbrev  0x00000050       0x26 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
- .debug_abbrev  0x00000076       0x9e /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+ .debug_abbrev  0x00000028       0x28 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .debug_abbrev  0x00000050       0x28 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+ .debug_abbrev  0x00000078       0x28 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+ .debug_abbrev  0x000000a0       0x26 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+ .debug_abbrev  0x000000c6       0x9e /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
-.debug_aranges  0x00000000       0x80
+.debug_aranges  0x00000000       0xc0
  .debug_aranges
                 0x00000000       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
  .debug_aranges
-                0x00000020       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+                0x00000020       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
  .debug_aranges
-                0x00000040       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+                0x00000040       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
  .debug_aranges
-                0x00000060       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+                0x00000060       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+ .debug_aranges
+                0x00000080       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+ .debug_aranges
+                0x000000a0       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
-.debug_str      0x00000000      0x24c
- .debug_str     0x00000000      0x24c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
+.debug_str      0x00000000      0x278
+ .debug_str     0x00000000      0x278 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
                                  0x96 (size before relaxing)
- .debug_str     0x0000024c       0x9b /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
- .debug_str     0x0000024c       0x9c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
- .debug_str     0x0000024c      0x1b8 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+ .debug_str     0x00000278       0x96 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+ .debug_str     0x00000278       0x96 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+ .debug_str     0x00000278       0x9b /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+ .debug_str     0x00000278       0x9c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+ .debug_str     0x00000278      0x1b8 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
 .debug_frame    0x00000000       0x40
  .debug_frame   0x00000000       0x20 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)

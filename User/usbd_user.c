@@ -142,6 +142,8 @@ extern "C"
       */
     void USBD_ProcessSetupPacket(void)
     {
+        g_usbd_CtrlOutToggle = 0;
+
         /* Get SETUP packet from USB buffer */
         USBD_MemCopy(g_usbd_SetupPacket, (uint8_t *)USBD_BUF_BASE, 8);
         /* Check the request type */
@@ -319,57 +321,45 @@ extern "C"
             // Device to host
             switch(g_usbd_SetupPacket[1])
             {
-#if 0
                 case GET_CONFIGURATION:
                 {
-                    // Return current configuration setting
-                    /* Data stage */
                     M8(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP0)) = g_usbd_UsbConfig;
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 1);
-                    /* Status stage */
-                    USBD_SET_DATA1(EP1);
                     USBD_PrepareCtrlOut(0, 0);
                     DBG_PRINTF("Get configuration\n");
                     break;
                 }
-#endif
                 case GET_DESCRIPTOR:
                 {
                     USBD_GetDescriptor();
                     break;
                 }
-#if 0
                 case GET_INTERFACE:
                 {
-                    // Return current interface setting
-                    /* Data stage */
                     M8(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP0)) = g_usbd_UsbAltInterface;
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 1);
-                    /* Status stage */
                     USBD_PrepareCtrlOut(0, 0);
                     DBG_PRINTF("Get interface\n");
                     break;
                 }
                 case GET_STATUS:
                 {
-                    // Device
                     if(g_usbd_SetupPacket[0] == 0x80)
                     {
                         uint8_t u8Tmp;
 
                         u8Tmp = 0;
-                        if(g_usbd_sInfo->gu8ConfigDesc[7] & 0x40) u8Tmp |= 1; // Self-Powered/Bus-Powered.
-                        if(g_usbd_sInfo->gu8ConfigDesc[7] & 0x20) u8Tmp |= (g_usbd_RemoteWakeupEn << 1); // Remote wake up
+                        if(g_usbd_sInfo->gu8ConfigDesc[7] & 0x40) u8Tmp |= 1;
+                        if(g_usbd_sInfo->gu8ConfigDesc[7] & 0x20) u8Tmp |= (g_usbd_RemoteWakeupEn << 1);
 
                         M8(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP0)) = u8Tmp;
-
                     }
-                    // Interface
                     else if(g_usbd_SetupPacket[0] == 0x81)
+                    {
                         M8(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP0)) = 0;
-                    // Endpoint
+                    }
                     else if(g_usbd_SetupPacket[0] == 0x82)
                     {
                         uint8_t ep = g_usbd_SetupPacket[4] & 0xF;
@@ -377,15 +367,12 @@ extern "C"
                     }
 
                     M8(USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP0) + 1) = 0;
-                    /* Data stage */
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 2);
-                    /* Status stage */
                     USBD_PrepareCtrlOut(0, 0);
                     DBG_PRINTF("Get status\n");
                     break;
                 }
-#endif
                 default:
                 {
                     /* Setup error, stall the device */
@@ -446,9 +433,6 @@ extern "C"
 
                     if(g_usbd_pfnSetConfigCallback)
                         g_usbd_pfnSetConfigCallback();
-                    // DATA IN for end of setup
-                    /* Status stage */
-                    USBD_PrepareCtrlOut(0, 0); 
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 0);
                     DBG_PRINTF("Set config to %d\n", g_usbd_UsbConfig);
@@ -477,8 +461,6 @@ extern "C"
                     g_usbd_UsbAltInterface = g_usbd_SetupPacket[2];
                     if(g_usbd_pfnSetInterface != NULL)
                         g_usbd_pfnSetInterface();
-                    /* Status stage */
-                    USBD_PrepareCtrlOut(0, 0); 
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 0);
                     DBG_PRINTF("Set interface to %d\n", g_usbd_UsbAltInterface);
@@ -599,7 +581,6 @@ extern "C"
       */
     void USBD_PrepareCtrlOut(uint8_t *pu8Buf, uint32_t u32Size)
     {
-        g_usbd_CtrlOutToggle = 0;
         g_usbd_CtrlOutPointer = pu8Buf;
         g_usbd_CtrlOutSize = 0;
         g_usbd_CtrlOutSizeLimit = u32Size;
@@ -622,24 +603,24 @@ extern "C"
 
         DBG_PRINTF("Ctrl Out Ack %d\n", g_usbd_CtrlOutSize);
 
-        if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
+        if(g_usbd_CtrlOutToggle != (USBD->EPSTS & USBD_EPSTS_EPSTS1_Msk))
         {
-            u32Size = USBD_GET_PAYLOAD_LEN(EP1);
-            USBD_MemCopy((uint8_t *)g_usbd_CtrlOutPointer, (uint8_t *)USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP1), u32Size);
-            g_usbd_CtrlOutPointer += u32Size;
-            g_usbd_CtrlOutSize += u32Size;
+            g_usbd_CtrlOutToggle = USBD->EPSTS & USBD_EPSTS_EPSTS1_Msk;
 
             if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
             {
-                USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
+                u32Size = USBD_GET_PAYLOAD_LEN(EP1);
+                USBD_MemCopy((uint8_t *)g_usbd_CtrlOutPointer, (uint8_t *)USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP1), u32Size);
+                g_usbd_CtrlOutPointer += u32Size;
+                g_usbd_CtrlOutSize += u32Size;
+
+                if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
+                    USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
             }
-            else
-            {
-                /* All data received — notify and send status ZLP */
-                extern void USBD_OnCtrlOutComplete(void);
-                USBD_OnCtrlOutComplete();
-                USBD_PrepareCtrlIn(0, 0);
-            }
+        }
+        else if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
+        {
+            USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
         }
     }
 

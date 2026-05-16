@@ -57,9 +57,7 @@
     dfu_status.bwPollTimeout2 = _BYTE3(x);
 
 #define FLASH_ERASE_TIMEOUT            60
-#define FLASH_WRITE_TIMEOUT            80
-
-extern volatile uint8_t g_write_pending;
+#define FLASH_WRITE_TIMEOUT            500
 
 /* bit detach capable = bit 3 in bmAttributes field */
 #define DFU_DETACH_MASK                (uint8_t)(0x10)
@@ -144,6 +142,7 @@ typedef struct
     uint8_t buf[TRANSFER_SIZE];
     uint16_t data_len;
     uint16_t block_num;
+    uint16_t block_stride;  /* bytes per DFU block (descriptor or host override) */
     uint32_t base_addr;
 } s_prog_struct;
 
