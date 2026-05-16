@@ -22,7 +22,7 @@
 #define SETUP_BUF_LEN                  8
 #define EP0_BUF_BASE                   (SETUP_BUF_BASE + SETUP_BUF_LEN)
 #define EP0_BUF_LEN                    EP0_MAX_PKT_SIZE
-#define EP1_BUF_BASE                   (SETUP_BUF_BASE + SETUP_BUF_LEN)
+#define EP1_BUF_BASE                   (EP0_BUF_BASE + EP0_BUF_LEN)
 #define EP1_BUF_LEN                    EP1_MAX_PKT_SIZE
 
 
@@ -59,6 +59,7 @@
 #define FLASH_ERASE_TIMEOUT            60
 #define FLASH_WRITE_TIMEOUT            80
 
+extern volatile uint8_t g_write_pending;
 
 /* bit detach capable = bit 3 in bmAttributes field */
 #define DFU_DETACH_MASK                (uint8_t)(0x10)

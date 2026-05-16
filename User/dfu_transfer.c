@@ -21,6 +21,27 @@ uint8_t manifest_state = MANIFEST_COMPLETE;
 dfu_status_struct dfu_status;
 s_prog_struct prog_struct __attribute__((aligned(4), section(".bss"))) = {0};
 
+volatile uint8_t g_write_pending = 0;
+
+
+void USBD_OnCtrlOutComplete(void)
+{
+    if(dfu_status.bState == STATE_dfuDNLOAD_SYNC)
+    {
+        /* Data is in prog_struct.buf — flag it for the main loop.
+           Do NOT write flash here; STATUS ZLP must go out first. */
+        g_write_pending = 1;
+        /* Keep state as dfuDNLOAD_SYNC so GETSTATUS replies dfuDNBUSY */
+    }
+    else if(dfu_status.bState == STATE_dfuMANIFEST_SYNC)
+    {
+        /* Manifest phase complete */
+        manifest_state = MANIFEST_COMPLETE;
+        dfu_status.bState = STATE_dfuIDLE;
+        g_reset = 1;
+    }
+}
+
 void USBD_IRQHandler(void)
 {
     uint32_t u32IntSts = USBD_GET_INT_FLAG();
@@ -65,9 +86,16 @@ void USBD_IRQHandler(void)
             USBD_CONFIG_EP(EP1, USBD_CFG_CSTALL | USBD_CFG_EPMODE_OUT | 0);
             USBD_SET_EP_BUF_ADDR(EP1, EP1_BUF_BASE);
             
+            /* Unused endpoints must point to end of SRAM so EP1 gets a valid buffer size */
+            USBD_SET_EP_BUF_ADDR(EP2, 512);
+            USBD_SET_EP_BUF_ADDR(EP3, 512);
+            USBD_SET_EP_BUF_ADDR(EP4, 512);
+            USBD_SET_EP_BUF_ADDR(EP5, 512);
+            USBD_SET_EP_BUF_ADDR(EP6, 512);
+            USBD_SET_EP_BUF_ADDR(EP7, 512);
+
             /* Prepare to receive setup packet */
-            USBD_SET_DATA1(EP1);
-            USBD_SET_PAYLOAD_LEN(EP1, EP0_MAX_PKT_SIZE);
+            USBD_SET_PAYLOAD_LEN(EP0, EP0_MAX_PKT_SIZE);
         }
 
         if(u32State & USBD_STATE_SUSPEND)
@@ -92,39 +120,35 @@ void USBD_IRQHandler(void)
     }
 
     //------------------------------------------------------------------
-    if(u32IntSts & USBD_INTSTS_USB)
+if(u32IntSts & USBD_INTSTS_USB)
+{
+    if(u32IntSts & USBD_INTSTS_SETUP)
     {
-        // USB event
-        if(u32IntSts & USBD_INTSTS_SETUP)
-        {
-            // Setup packet
-            /* Clear event flag */
-            USBD_CLR_INT_FLAG(USBD_INTSTS_SETUP);
-
-            /* Clear the data IN/OUT ready flag of control end-points */
-            USBD_STOP_TRANSACTION(EP0);
-            USBD_STOP_TRANSACTION(EP1);
-
-            USBD_ProcessSetupPacket();
-        }
-
-        // EP events
+        /* Clear the setup flag and cancel any in-flight EP0/EP1 transactions.
+           SETUP arrival also sets EP1 — we must NOT call USBD_CtrlOut()
+           in the same ISR pass or the freshly-written MXPLD looks like
+           received data, corrupting the OUT byte counter. */
+        USBD_CLR_INT_FLAG(USBD_INTSTS_SETUP);
+        USBD_STOP_TRANSACTION(EP0);
+        USBD_STOP_TRANSACTION(EP1);
+        USBD_ProcessSetupPacket();
+        /* Fall through without processing EP0/EP1 this cycle */
+    }
+    else
+    {
         if(u32IntSts & USBD_INTSTS_EP0)
         {
-            /* Clear event flag */
             USBD_CLR_INT_FLAG(USBD_INTSTS_EP0);
-            // control IN
             USBD_CtrlIn();
         }
 
         if(u32IntSts & USBD_INTSTS_EP1)
         {
-            /* Clear event flag */
             USBD_CLR_INT_FLAG(USBD_INTSTS_EP1);
-            // control OUT
             USBD_CtrlOut();
         }
     }
+}
 }
 
 
@@ -186,18 +210,17 @@ void DFU_ClassRequest(void)
             {
                 if(dfu_status.bState == STATE_dfuDNLOAD_SYNC)
                 {
+                    /* Host polled before OUT data finished — still programming */
                     SET_POLLING_TIMEOUT(FLASH_WRITE_TIMEOUT);
-                    WriteData(prog_struct.block_num * TRANSFER_SIZE,
-                              (prog_struct.block_num * TRANSFER_SIZE) + prog_struct.data_len,
-                              (uint32_t *)prog_struct.buf);
                     dfu_status.bStatus = STATUS_OK;
-                    dfu_status.bState = STATE_dfuDNLOAD_IDLE;
+                    dfu_status.bState = STATE_dfuDNBUSY;
                 }
                 else if(dfu_status.bState == STATE_dfuMANIFEST_SYNC)
                 {
                     manifest_state = MANIFEST_COMPLETE;
                     dfu_status.bStatus = STATUS_OK;
                     dfu_status.bState = STATE_dfuIDLE;
+                    g_reset = 1;
                 }
 
                 DFU_ReplyStatus();
@@ -278,6 +301,7 @@ void DFU_ClassRequest(void)
                     default:
                         break;
                 }
+                USBD_PrepareCtrlIn(0, 0);
                 break;
             }
 
@@ -302,9 +326,14 @@ void DFU_ClassRequest(void)
 
                         }
 
-                        SET_POLLING_TIMEOUT(FLASH_WRITE_TIMEOUT);
-                        USBD_PrepareCtrlOut((uint8_t *)prog_struct.buf, wLength);
-                        USBD_PrepareCtrlIn(0, 0);
+                        if(wLength > 0)
+                        {
+                            USBD_PrepareCtrlOut((uint8_t *)prog_struct.buf, wLength);
+                        }
+                        else
+                        {
+                            USBD_PrepareCtrlIn(0, 0);
+                        }
                         break;
 
                     default:
@@ -321,7 +350,7 @@ void DFU_ClassRequest(void)
                 dfu_status.bStatus = STATUS_OK;
                 dfu_status.bState = STATE_dfuIDLE;
                 dfu_status.iString = 0;
-                DFU_ReplyStatus();
+                USBD_PrepareCtrlIn(0, 0);
                 break;
             }
 

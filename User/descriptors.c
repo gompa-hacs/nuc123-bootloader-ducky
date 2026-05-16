@@ -57,7 +57,7 @@ const uint8_t gu8ConfigDescriptor[] =
     0x00,   /* bNumEndpoints*/
     0xFE,   /* bInterfaceClass: DFU */
     0x01,   /* bInterfaceSubClass */
-    0x02,   /* nInterfaceProtocol, switched to 0x02 while in dfu_mode */
+    0x01,   /* nInterfaceProtocol, 0x01 = DFU mode */
     0x00,   /* iInterface: */
 
     /******************** DFU Functional Descriptor********************/

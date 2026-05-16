@@ -45,14 +45,14 @@ enum { r0, r1, r2, r3, r12, lr, pc, psr};
  */
 static void stackDump(uint32_t stack[])
 {   
-    printf("r0  = 0x%x\n", stack[r0]);
-    printf("r1  = 0x%x\n", stack[r1]);
-    printf("r2  = 0x%x\n", stack[r2]);
-    printf("r3  = 0x%x\n", stack[r3]);
-    printf("r12 = 0x%x\n", stack[r12]);
-    printf("lr  = 0x%x\n", stack[lr]);
-    printf("pc  = 0x%x\n", stack[pc]);
-    printf("psr = 0x%x\n", stack[psr]);
+    printf("r0  = 0x%lx\n", stack[r0]);
+    printf("r1  = 0x%lx\n", stack[r1]);
+    printf("r2  = 0x%lx\n", stack[r2]);
+    printf("r3  = 0x%lx\n", stack[r3]);
+    printf("r12 = 0x%lx\n", stack[r12]);
+    printf("lr  = 0x%lx\n", stack[lr]);
+    printf("pc  = 0x%lx\n", stack[pc]);
+    printf("psr = 0x%lx\n", stack[psr]);
 }
 
 /**
@@ -331,18 +331,24 @@ SH_End
  */
 void HardFault_Handler(void)
 {
-    asm("MOVS    r0, #4                        \n"
-        "MOV     r1, LR                        \n"
-        "TST     r0, r1                        \n" /*; check LR bit 2 */
-        "BEQ     1f                            \n" /*; stack use MSP */
-        "MRS     R0, PSP                       \n" /*; stack use PSP, read PSP */
-        "MOV     R1, LR                        \n" /*; LR current value */
-        "B       Hard_Fault_Handler            \n"
-        "1:                                    \n"
-        "MRS     R0, MSP                       \n" /*; LR current value */
-        "B       Hard_Fault_Handler            \n"
-        ::[Hard_Fault_Handler] "r" (Hard_Fault_Handler) // input
+    uint32_t *stack;
+    
+    __asm__ volatile(
+        "MOVS    r0, #4\n"
+        "MOV     r1, LR\n"
+        "TST     r0, r1\n"
+        "BEQ     1f\n"
+        "MRS     r0, PSP\n"
+        "B       2f\n"
+        "1:\n"
+        "MRS     r0, MSP\n"
+        "2:\n"
+        : "=r" (stack)
+        :
+        : "r0", "r1"
     );
+    
+    Hard_Fault_Handler(stack);
     while(1);
 }
 

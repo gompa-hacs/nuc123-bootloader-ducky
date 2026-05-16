@@ -44,17 +44,17 @@ extern "C"
     /**
      * @cond HIDDEN_SYMBOLS
      */
-    static volatile uint8_t *g_usbd_CtrlInPointer = 0;
-    static volatile uint32_t g_usbd_CtrlInSize = 0;
-    static volatile uint8_t *g_usbd_CtrlOutPointer = 0;
-    static volatile uint32_t g_usbd_CtrlOutSize = 0;
-    static volatile uint32_t g_usbd_CtrlOutSizeLimit = 0;
-    static volatile uint32_t g_usbd_UsbAddr = 0;
-    static volatile uint32_t g_usbd_UsbConfig = 0;
-    static volatile uint32_t g_usbd_CtrlMaxPktSize = 8;
-    static volatile uint32_t g_usbd_UsbAltInterface = 0;
-    static volatile uint32_t g_usbd_CtrlOutToggle = 0;
-    static volatile uint8_t  g_usbd_CtrlInZeroFlag = 0;
+    volatile uint8_t *g_usbd_CtrlInPointer = 0;
+    volatile uint32_t g_usbd_CtrlInSize = 0;
+    volatile uint8_t *g_usbd_CtrlOutPointer = 0;
+    volatile uint32_t g_usbd_CtrlOutSize = 0;
+    volatile uint32_t g_usbd_CtrlOutSizeLimit = 0;
+    volatile uint32_t g_usbd_UsbAddr = 0;
+    volatile uint32_t g_usbd_UsbConfig = 0;
+    volatile uint32_t g_usbd_CtrlMaxPktSize = 8;
+    volatile uint32_t g_usbd_UsbAltInterface = 0;
+    volatile uint32_t g_usbd_CtrlOutToggle = 0;
+    volatile uint8_t  g_usbd_CtrlInZeroFlag = 0;
     /**
      * @endcond
      */
@@ -142,8 +142,6 @@ extern "C"
       */
     void USBD_ProcessSetupPacket(void)
     {
-        g_usbd_CtrlOutToggle = 0;
-
         /* Get SETUP packet from USB buffer */
         USBD_MemCopy(g_usbd_SetupPacket, (uint8_t *)USBD_BUF_BASE, 8);
         /* Check the request type */
@@ -450,6 +448,7 @@ extern "C"
                         g_usbd_pfnSetConfigCallback();
                     // DATA IN for end of setup
                     /* Status stage */
+                    USBD_PrepareCtrlOut(0, 0); 
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 0);
                     DBG_PRINTF("Set config to %d\n", g_usbd_UsbConfig);
@@ -473,19 +472,18 @@ extern "C"
                     USBD_SET_PAYLOAD_LEN(EP0, 0);
                     break;
                 }
-#if 0
                 case SET_INTERFACE:
                 {
                     g_usbd_UsbAltInterface = g_usbd_SetupPacket[2];
                     if(g_usbd_pfnSetInterface != NULL)
                         g_usbd_pfnSetInterface();
                     /* Status stage */
+                    USBD_PrepareCtrlOut(0, 0); 
                     USBD_SET_DATA1(EP0);
                     USBD_SET_PAYLOAD_LEN(EP0, 0);
                     DBG_PRINTF("Set interface to %d\n", g_usbd_UsbAltInterface);
                     break;
                 }
-#endif
                 default:
                 {
                     /* Setup error, stall the device */
@@ -601,6 +599,7 @@ extern "C"
       */
     void USBD_PrepareCtrlOut(uint8_t *pu8Buf, uint32_t u32Size)
     {
+        g_usbd_CtrlOutToggle = 0;
         g_usbd_CtrlOutPointer = pu8Buf;
         g_usbd_CtrlOutSize = 0;
         g_usbd_CtrlOutSizeLimit = u32Size;
@@ -623,23 +622,24 @@ extern "C"
 
         DBG_PRINTF("Ctrl Out Ack %d\n", g_usbd_CtrlOutSize);
 
-        if(g_usbd_CtrlOutToggle != (USBD->EPSTS & USBD_EPSTS_EPSTS1_Msk))
+        if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
         {
-            g_usbd_CtrlOutToggle = USBD->EPSTS & USBD_EPSTS_EPSTS1_Msk;
+            u32Size = USBD_GET_PAYLOAD_LEN(EP1);
+            USBD_MemCopy((uint8_t *)g_usbd_CtrlOutPointer, (uint8_t *)USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP1), u32Size);
+            g_usbd_CtrlOutPointer += u32Size;
+            g_usbd_CtrlOutSize += u32Size;
+
             if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
             {
-                u32Size = USBD_GET_PAYLOAD_LEN(EP1);
-                USBD_MemCopy((uint8_t *)g_usbd_CtrlOutPointer, (uint8_t *)USBD_BUF_BASE + USBD_GET_EP_BUF_ADDR(EP1), u32Size);
-                g_usbd_CtrlOutPointer += u32Size;
-                g_usbd_CtrlOutSize += u32Size;
-
-                if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
-                    USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
+                USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
             }
-        }
-        else
-        {
-            USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
+            else
+            {
+                /* All data received — notify and send status ZLP */
+                extern void USBD_OnCtrlOutComplete(void);
+                USBD_OnCtrlOutComplete();
+                USBD_PrepareCtrlIn(0, 0);
+            }
         }
     }
 

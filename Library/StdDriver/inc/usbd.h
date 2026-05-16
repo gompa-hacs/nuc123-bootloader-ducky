@@ -204,7 +204,7 @@ extern const S_USBD_INFO_T gsInfo;
   * @details  To set USB ATTR control register to enable USB and PHY.
   *
   */
-#define USBD_ENABLE_USB()           ((uint32_t)(USBD->ATTR |= (USBD_USB_EN|USBD_PHY_EN)))
+#define USBD_ENABLE_USB()           ((uint32_t)(USBD->ATTR |= (USBD_USB_EN|USBD_PHY_EN|USBD_ATTR_BYTEM_Msk)))
 
 /**
   * @brief    Disable USB
