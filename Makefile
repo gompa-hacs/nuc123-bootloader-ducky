@@ -39,6 +39,11 @@ INCLUDES = \
 
 DEFS = -DUSE_ASSERT=0
 
+# Always enter DFU (USB debug): make dfu-always  (must clean — else main.o is stale)
+dfu-always:
+	$(MAKE) clean
+	$(MAKE) all DEFS='$(DEFS) -DBOOTLOADER_ALWAYS_DFU=1'
+
 CFLAGS  = $(CPU) $(THUMB) $(INCLUDES) $(DEFS)
 CFLAGS += -Wall -fmessage-length=0 -fsigned-char
 CFLAGS += -ffunction-sections -fdata-sections

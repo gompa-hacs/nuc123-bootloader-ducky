@@ -1,49 +1,79 @@
 #!/bin/bash
-# Recover NUC123 keyboard: force LDROM bootloader, optional APROM erase.
-# Run on the Pi wired to SWD (192.168.1.105) or locally with nuc123.cfg in PATH.
+# Recover NUC123 keyboard via SWD (Pi or local OpenOCD + nuc123.cfg).
 set -euo pipefail
 
 CFG="${NUC123_CFG:-$HOME/nuc123.cfg}"
 OPENOCD="${OPENOCD:-sudo openocd}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
-    echo "Usage: $0 [ldrom|halt|erase-aprom|flash-ldrom PATH.bin]"
+    echo "Usage: $0 [recover|recover-hex|ldrom|halt|erase-aprom|check]"
+    echo "  recover      ProgramLDROMBin .bin + config (try first)"
+    echo "  recover-hex  ProgramLDROM .hex + config"
+    echo "  recover-isp  WriteLDROM .bin via ISP (fallback)"
+    echo "  check        mdw LDROM/APROM vectors"
     exit 1
 }
 
-[[ -f "$CFG" ]] || { echo "Missing $CFG"; exit 1; }
+[[ -f "$CFG" ]] || { echo "Missing $CFG — copy from $REPO_DIR/nuc123.cfg"; exit 1; }
 
-case "${1:-ldrom}" in
+HEX="${REPO_DIR}/nuc123-dfu-bootloader.hex"
+BIN="${REPO_DIR}/nuc123-dfu-bootloader.bin"
+
+build_dfu_always() {
+    echo "=== Building make dfu-always (USB always on, no Esc needed) ==="
+    make -C "$REPO_DIR" clean dfu-always
+}
+
+case "${1:-recover-hex}" in
+    check)
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "CheckLDROM" -c "mdw 0x00000000 2" -c "ReadConfigRegs" -c "shutdown"
+        ;;
     ldrom)
-        echo "=== Force boot from LDROM (only works if LDROM has a bootloader) ==="
-        $OPENOCD -f "$CFG" -c "init" -c "halt" -c "mdw 0x00100000 1" -c "SysReset ldrom run" -c "shutdown"
-        echo "If LDROM was erased, use: $0 recover-full [bootloader.bin]"
+        $OPENOCD -f "$CFG" -c "init" -c "halt" -c "CheckLDROM" \
+            -c "SysReset ldrom halt" -c "reg pc" -c "reg msp" -c "shutdown"
         ;;
     halt)
-        echo "=== Halt and show state ==="
-        $OPENOCD -f "$CFG" -c "init" -c "reset halt" -c "mdw 0x00000000 4" -c "mdw 0x00000180 4" -c "ReadConfigRegs" -c "shutdown" 2>&1 | \
-            grep -E "pc:|xPSR|0x00000000|Config"
+        $OPENOCD -f "$CFG" -c "init" -c "halt" -c "CheckLDROM" \
+            -c "mdw 0x00000000 2" -c "ReadConfigRegs" -c "reg pc" -c "shutdown"
         ;;
     erase-aprom)
-        echo "WARNING: ChipErase wipes ALL flash (APROM + LDROM + config)!"
-        echo "Use recover-full instead."
-        exit 1
+        $OPENOCD -f "$CFG" -c "EraseAPROM" -c "shutdown"
         ;;
-    recover-full)
-        BIN="${2:-$HOME/nuc123-dfu-bootloader.bin}"
-        echo "=== Restore config, flash LDROM, boot DFU ==="
-        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+    recover-hex)
+        HEX="${2:-$HEX}"
+        build_dfu_always
+        [[ -f "$HEX" ]] || { echo "Missing $HEX"; exit 1; }
+        echo "=== Config + ProgramLDROM (hex, no address offset) ==="
+        $OPENOCD -f "$CFG" \
             -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
-            -c "program $BIN 0x00100000" \
-            -c "SysReset ldrom run" -c "shutdown"
-        echo "Unplug/replug USB; lsusb -d 0416:bdf0"
+            -c "ProgramLDROM $HEX" \
+            -c "shutdown"
+        echo "Unplug SWD. Plug USB only. Run: lsusb -d 0416:bdf0"
         ;;
-    flash-ldrom)
-        [[ -n "${2:-}" ]] || usage
-        BIN="$(realpath "$2")"
-        echo "=== Flash LDROM: $BIN ==="
-        $OPENOCD -f "$CFG" -c "init" -c "halt" \
-            -c "program $BIN 0x00100000" -c "SysReset ldrom run" -c "shutdown"
+    recover|recover-bin)
+        BIN="${2:-$BIN}"
+        build_dfu_always
+        [[ -f "$BIN" ]] || { echo "Missing $BIN"; exit 1; }
+        echo "=== Config + ProgramLDROMBin ==="
+        $OPENOCD -f "$CFG" \
+            -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
+            -c "ProgramLDROMBin $BIN" \
+            -c "shutdown"
+        echo "Unplug SWD. Plug USB only. Run: lsusb -d 0416:bdf0"
+        ;;
+    recover-isp)
+        BIN="${2:-$BIN}"
+        build_dfu_always
+        [[ -f "$BIN" ]] || { echo "Missing $BIN"; exit 1; }
+        echo "=== Config + WriteLDROM (ISP) ==="
+        $OPENOCD -f "$CFG" \
+            -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
+            -c "WriteLDROM $BIN" \
+            -c "shutdown"
+        echo "If this fails, try: $0 recover-bin $BIN"
         ;;
     *)
         usage

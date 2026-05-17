@@ -18,7 +18,7 @@ extern uint8_t g_reset;
 #define APROM_BLOCK_NUM         ((g_romSize/TRANSFER_SIZE)-1)
 
 uint32_t command_Count = 0;
-uint8_t manifest_state = MANIFEST_COMPLETE;
+uint8_t manifest_state = MANIFEST_IN_PROGRESS;
 dfu_status_struct dfu_status;
 s_prog_struct prog_struct __attribute__((aligned(4), section(".bss"))) = {0};
 
@@ -125,6 +125,7 @@ void DFU_ClassRequest(void)
                 if(dfu_status.bState == STATE_dfuDNLOAD_SYNC)
                 {
                     command_Count++;
+                    SET_POLLING_TIMEOUT(FLASH_WRITE_TIMEOUT);
 
                     if(command_Count == 5)
                     {
@@ -157,7 +158,6 @@ void DFU_ClassRequest(void)
                         dfu_status.bState = STATE_dfuIDLE;
                         command_Count = 0;
                         manifest_state = MANIFEST_COMPLETE;
-                        g_reset = 1;
                     }
                 }
 
@@ -244,13 +244,20 @@ void DFU_ClassRequest(void)
                         }
                         else
                         {
+                            command_Count = 0;
                             manifest_state = MANIFEST_IN_PROGRESS;
                             dfu_status.bState = STATE_dfuMANIFEST_SYNC;
                         }
 
-                        /* Nuvoton: arm OUT data path and status IN together */
-                        USBD_PrepareCtrlOut((uint8_t *)prog_struct.buf, wLength);
-                        USBD_PrepareCtrlIn(0, 0);
+                        if(wLength > 0)
+                        {
+                            /* Status ZLP is sent from USBD_CtrlOut when OUT completes */
+                            USBD_PrepareCtrlOut((uint8_t *)prog_struct.buf, wLength);
+                        }
+                        else
+                        {
+                            USBD_PrepareCtrlIn(0, 0);
+                        }
                         break;
 
                     default:

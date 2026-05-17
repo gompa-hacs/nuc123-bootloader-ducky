@@ -581,10 +581,12 @@ extern "C"
       */
     void USBD_PrepareCtrlOut(uint8_t *pu8Buf, uint32_t u32Size)
     {
+        g_usbd_CtrlOutToggle = 0;
         g_usbd_CtrlOutPointer = pu8Buf;
         g_usbd_CtrlOutSize = 0;
         g_usbd_CtrlOutSizeLimit = u32Size;
-        USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
+        if(u32Size > 0)
+            USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
     }
 
     /**
@@ -597,6 +599,9 @@ extern "C"
       * @details  This function processes the successive Control OUT transfer.
       *
       */
+    void USBD_OnCtrlOutComplete(void) __attribute__((weak));
+    void USBD_OnCtrlOutComplete(void) {}
+
     void USBD_CtrlOut(void)
     {
         uint32_t u32Size;
@@ -616,6 +621,11 @@ extern "C"
 
                 if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
                     USBD_SET_PAYLOAD_LEN(EP1, g_usbd_CtrlMaxPktSize);
+                else
+                {
+                    USBD_OnCtrlOutComplete();
+                    USBD_PrepareCtrlIn(0, 0);
+                }
             }
         }
         else if(g_usbd_CtrlOutSize < g_usbd_CtrlOutSizeLimit)
