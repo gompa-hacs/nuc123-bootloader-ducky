@@ -4,8 +4,8 @@
  * SRAM:  12KB at 0x20000000
  *
  * SRAM layout:
- *   0x20000000: .stack  (1KB, grows DOWN from __initial_sp at 0x20000400)
- *   0x20000400: .data   (initialized data, copied from LDROM by startup)
+ *   0x20000000: .stack  (2KB, grows DOWN from __initial_sp at 0x20000800)
+ *   0x20000800: .data   (initialized data, copied from LDROM by startup)
  *   after .data: .bss   (zero-initialized data)
  */
 
@@ -21,19 +21,13 @@ SECTIONS
 {
     .text :
     {
-        KEEP(*(.isr_vector))    /* Vector table must be first */
+        KEEP(*(.isr_vector))
         *(.text*)
         *(.rodata*)
         . = ALIGN(4);
         _etext = .;
     } > LDROM
 
-    /*
-     * Stack MUST come first in SRAM.
-     * startup_NUC123_user.s defines __initial_sp at the end of .stack section.
-     * ARM stack grows downward from __initial_sp.
-     * Placing stack first ensures it never overlaps .data or .bss.
-     */
     .stack (NOLOAD) :
     {
         . = ALIGN(8);
@@ -41,13 +35,9 @@ SECTIONS
         . = ALIGN(8);
     } > SRAM
 
-    /* Heap (empty by default, Heap_Size = 0 in startup) */
-    .heap (NOLOAD) :
-    {
-        *(.heap)
-    } > SRAM
+    /* Do not place .heap — empty heap VMA at 0x20000000 overlaps stack */
 
-    .data :
+    .data ORIGIN(SRAM) + 0x800 :
     {
         _sdata = .;
         *(.data*)
@@ -65,6 +55,9 @@ SECTIONS
         . = ALIGN(4);
         _ebss = .;
     } > SRAM
+
+    ASSERT(_sdata >= __initial_sp, "SRAM: .data overlaps stack")
+    ASSERT(_ebss <= ORIGIN(SRAM) + LENGTH(SRAM), "SRAM overflow")
 
     /DISCARD/ :
     {

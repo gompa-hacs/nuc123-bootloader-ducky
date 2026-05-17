@@ -15,7 +15,7 @@
 #ifdef Stack_Size
     .equ Stack_Size, Stack_Size
 #else
-    .equ Stack_Size, 0x00000400
+    .equ Stack_Size, 0x00000800
 #endif
     .globl __initial_sp
     .space Stack_Size

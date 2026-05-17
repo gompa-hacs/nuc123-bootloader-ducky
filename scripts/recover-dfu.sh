@@ -1,79 +1,73 @@
 #!/bin/bash
-# Recover NUC123 keyboard via SWD (Pi or local OpenOCD + nuc123.cfg).
+# NUC123 Ducky One 2 SF — SWD recover + LDROM flash
 set -euo pipefail
 
 CFG="${NUC123_CFG:-$HOME/nuc123.cfg}"
 OPENOCD="${OPENOCD:-sudo openocd}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 usage() {
-    echo "Usage: $0 [recover|recover-hex|ldrom|halt|erase-aprom|check]"
-    echo "  recover      ProgramLDROMBin .bin + config (try first)"
-    echo "  recover-hex  ProgramLDROM .hex + config"
-    echo "  recover-isp  WriteLDROM .bin via ISP (fallback)"
-    echo "  check        mdw LDROM/APROM vectors"
+    cat <<'EOF'
+Usage:
+  recover-dfu.sh check
+  recover-dfu.sh recover [bin]       # default: nuc123-dfu-bootloader-recovery.bin (3576 B)
+  recover-dfu.sh recover-good [bin]    # commit 466fc3d image (SP=0x20000400) — USB litmus test
+  recover-dfu.sh live
+  recover-dfu.sh usb
+
+PC:
+  make recovery && make known-good
+  scp nuc123.cfg nuc123-dfu-bootloader-*.bin recover-dfu.sh pi@host:~/
+
+Config must be 0xFFFFFF3E (LDROM boot). Old 0xFFFFFF7E boots APROM = no DFU on USB.
+
+USB test: quit OpenOCD, unplug SWD, wait 5s, plug USB, lsusb -d 0416:bdf0
+EOF
     exit 1
 }
 
-[[ -f "$CFG" ]] || { echo "Missing $CFG — copy from $REPO_DIR/nuc123.cfg"; exit 1; }
+[[ -f "$CFG" ]] || { echo "Missing $CFG"; exit 1; }
 
-HEX="${REPO_DIR}/nuc123-dfu-bootloader.hex"
-BIN="${REPO_DIR}/nuc123-dfu-bootloader.bin"
-
-build_dfu_always() {
-    echo "=== Building make dfu-always (USB always on, no Esc needed) ==="
-    make -C "$REPO_DIR" clean dfu-always
-}
-
-case "${1:-recover-hex}" in
+case "${1:-recover}" in
     check)
         $OPENOCD -f "$CFG" -c "init" -c "halt" \
-            -c "CheckLDROM" -c "mdw 0x00000000 2" -c "ReadConfigRegs" -c "shutdown"
+            -c "ReadConfigRegs" -c "CheckLDROM" -c "shutdown" 2>&1
         ;;
-    ldrom)
-        $OPENOCD -f "$CFG" -c "init" -c "halt" -c "CheckLDROM" \
-            -c "SysReset ldrom halt" -c "reg pc" -c "reg msp" -c "shutdown"
+    recover)
+        BIN="${2:-$HOME/nuc123-dfu-bootloader-recovery.bin}"
+        [[ -f "$BIN" ]] || { echo "Missing $BIN — run: make recovery"; exit 1; }
+        echo "=== Flash recovery LDROM: $BIN ==="
+        md5sum "$BIN"
+        [[ "$(wc -c < "$BIN")" -eq 3576 ]] || echo "WARNING: size is not 3576 bytes"
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "WriteConfigRegs 0xFFFFFF3E 0xFFFFFFFF" \
+            -c "ProgramLDROMBin $BIN strict" \
+            -c "shutdown" 2>&1
+        echo "IMPORTANT: Unplug SWD from keyboard NOW, then USB power-cycle."
         ;;
-    halt)
-        $OPENOCD -f "$CFG" -c "init" -c "halt" -c "CheckLDROM" \
-            -c "mdw 0x00000000 2" -c "ReadConfigRegs" -c "reg pc" -c "shutdown"
-        ;;
-    erase-aprom)
-        $OPENOCD -f "$CFG" -c "EraseAPROM" -c "shutdown"
-        ;;
-    recover-hex)
-        HEX="${2:-$HEX}"
-        build_dfu_always
-        [[ -f "$HEX" ]] || { echo "Missing $HEX"; exit 1; }
-        echo "=== Config + ProgramLDROM (hex, no address offset) ==="
-        $OPENOCD -f "$CFG" \
-            -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
-            -c "ProgramLDROM $HEX" \
+    recover-good)
+        BIN="${2:-$HOME/nuc123-dfu-bootloader-known-good.bin}"
+        [[ -f "$BIN" ]] || { echo "Missing $BIN — run: make known-good"; exit 1; }
+        echo "=== Flash KNOWN-GOOD (466fc3d) LDROM — hold Esc if USB does not appear ==="
+        md5sum "$BIN"
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "WriteConfigRegs 0xFFFFFF3E 0xFFFFFFFF" \
+            -c "ProgramLDROMBin $BIN known-good" \
             -c "shutdown"
-        echo "Unplug SWD. Plug USB only. Run: lsusb -d 0416:bdf0"
         ;;
-    recover|recover-bin)
-        BIN="${2:-$BIN}"
-        build_dfu_always
-        [[ -f "$BIN" ]] || { echo "Missing $BIN"; exit 1; }
-        echo "=== Config + ProgramLDROMBin ==="
-        $OPENOCD -f "$CFG" \
-            -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
-            -c "ProgramLDROMBin $BIN" \
-            -c "shutdown"
-        echo "Unplug SWD. Plug USB only. Run: lsusb -d 0416:bdf0"
+    live)
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "CheckLDROM" \
+            -c "SysReset ldrom run" -c "sleep 200" -c "halt" \
+            -c "reg pc msp lr" -c "shutdown" 2>&1
+        echo "pc must be 0x00100xxx; msp 0x20000800 (recovery) or 0x20000400 (known-good)"
         ;;
-    recover-isp)
-        BIN="${2:-$BIN}"
-        build_dfu_always
-        [[ -f "$BIN" ]] || { echo "Missing $BIN"; exit 1; }
-        echo "=== Config + WriteLDROM (ISP) ==="
-        $OPENOCD -f "$CFG" \
-            -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
-            -c "WriteLDROM $BIN" \
-            -c "shutdown"
-        echo "If this fails, try: $0 recover-bin $BIN"
+    usb)
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "CheckLDROM" \
+            -c "SysReset ldrom run" -c "sleep 300" -c "halt" \
+            -c "reg pc msp" \
+            -c "mdw 0x40060010 1" -c "mdw 0x40060014 1" \
+            -c "shutdown" 2>&1
         ;;
     *)
         usage
