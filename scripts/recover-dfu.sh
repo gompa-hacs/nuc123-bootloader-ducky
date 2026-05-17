@@ -1,49 +1,73 @@
 #!/bin/bash
-# Recover NUC123 keyboard: force LDROM bootloader, optional APROM erase.
-# Run on the Pi wired to SWD (192.168.1.105) or locally with nuc123.cfg in PATH.
+# NUC123 Ducky One 2 SF — SWD recover + LDROM flash
 set -euo pipefail
 
 CFG="${NUC123_CFG:-$HOME/nuc123.cfg}"
 OPENOCD="${OPENOCD:-sudo openocd}"
 
 usage() {
-    echo "Usage: $0 [ldrom|halt|erase-aprom|flash-ldrom PATH.bin]"
+    cat <<'EOF'
+Usage:
+  recover-dfu.sh check
+  recover-dfu.sh recover [bin]       # default: nuc123-dfu-bootloader-recovery.bin (3576 B)
+  recover-dfu.sh recover-good [bin]    # commit 466fc3d image (SP=0x20000400) — USB litmus test
+  recover-dfu.sh live
+  recover-dfu.sh usb
+
+PC:
+  make recovery && make known-good
+  scp nuc123.cfg nuc123-dfu-bootloader-*.bin recover-dfu.sh pi@host:~/
+
+Config must be 0xFFFFFF3E (LDROM boot). Old 0xFFFFFF7E boots APROM = no DFU on USB.
+
+USB test: quit OpenOCD, unplug SWD, wait 5s, plug USB, lsusb -d 0416:bdf0
+EOF
     exit 1
 }
 
 [[ -f "$CFG" ]] || { echo "Missing $CFG"; exit 1; }
 
-case "${1:-ldrom}" in
-    ldrom)
-        echo "=== Force boot from LDROM (only works if LDROM has a bootloader) ==="
-        $OPENOCD -f "$CFG" -c "init" -c "halt" -c "mdw 0x00100000 1" -c "SysReset ldrom run" -c "shutdown"
-        echo "If LDROM was erased, use: $0 recover-full [bootloader.bin]"
-        ;;
-    halt)
-        echo "=== Halt and show state ==="
-        $OPENOCD -f "$CFG" -c "init" -c "reset halt" -c "mdw 0x00000000 4" -c "mdw 0x00000180 4" -c "ReadConfigRegs" -c "shutdown" 2>&1 | \
-            grep -E "pc:|xPSR|0x00000000|Config"
-        ;;
-    erase-aprom)
-        echo "WARNING: ChipErase wipes ALL flash (APROM + LDROM + config)!"
-        echo "Use recover-full instead."
-        exit 1
-        ;;
-    recover-full)
-        BIN="${2:-$HOME/nuc123-dfu-bootloader.bin}"
-        echo "=== Restore config, flash LDROM, boot DFU ==="
+case "${1:-recover}" in
+    check)
         $OPENOCD -f "$CFG" -c "init" -c "halt" \
-            -c "WriteConfigRegs 0xFFFFFF7E 0xFFFFFFFF" \
-            -c "program $BIN 0x00100000" \
-            -c "SysReset ldrom run" -c "shutdown"
-        echo "Unplug/replug USB; lsusb -d 0416:bdf0"
+            -c "ReadConfigRegs" -c "CheckLDROM" -c "shutdown" 2>&1
         ;;
-    flash-ldrom)
-        [[ -n "${2:-}" ]] || usage
-        BIN="$(realpath "$2")"
-        echo "=== Flash LDROM: $BIN ==="
+    recover)
+        BIN="${2:-$HOME/nuc123-dfu-bootloader-recovery.bin}"
+        [[ -f "$BIN" ]] || { echo "Missing $BIN — run: make recovery"; exit 1; }
+        echo "=== Flash recovery LDROM: $BIN ==="
+        md5sum "$BIN"
+        [[ "$(wc -c < "$BIN")" -eq 3576 ]] || echo "WARNING: size is not 3576 bytes"
         $OPENOCD -f "$CFG" -c "init" -c "halt" \
-            -c "program $BIN 0x00100000" -c "SysReset ldrom run" -c "shutdown"
+            -c "WriteConfigRegs 0xFFFFFF3E 0xFFFFFFFF" \
+            -c "ProgramLDROMBin $BIN strict" \
+            -c "shutdown" 2>&1
+        echo "IMPORTANT: Unplug SWD from keyboard NOW, then USB power-cycle."
+        ;;
+    recover-good)
+        BIN="${2:-$HOME/nuc123-dfu-bootloader-known-good.bin}"
+        [[ -f "$BIN" ]] || { echo "Missing $BIN — run: make known-good"; exit 1; }
+        echo "=== Flash KNOWN-GOOD (466fc3d) LDROM — hold Esc if USB does not appear ==="
+        md5sum "$BIN"
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "WriteConfigRegs 0xFFFFFF3E 0xFFFFFFFF" \
+            -c "ProgramLDROMBin $BIN known-good" \
+            -c "shutdown"
+        ;;
+    live)
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "CheckLDROM" \
+            -c "SysReset ldrom run" -c "sleep 200" -c "halt" \
+            -c "reg pc msp lr" -c "shutdown" 2>&1
+        echo "pc must be 0x00100xxx; msp 0x20000800 (recovery) or 0x20000400 (known-good)"
+        ;;
+    usb)
+        $OPENOCD -f "$CFG" -c "init" -c "halt" \
+            -c "CheckLDROM" \
+            -c "SysReset ldrom run" -c "sleep 300" -c "halt" \
+            -c "reg pc msp" \
+            -c "mdw 0x40060010 1" -c "mdw 0x40060014 1" \
+            -c "shutdown" 2>&1
         ;;
     *)
         usage

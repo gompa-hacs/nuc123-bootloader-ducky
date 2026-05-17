@@ -17,7 +17,7 @@
 /* Define EP maximum packet size */
 #define EP0_MAX_PKT_SIZE               64
 #define EP1_MAX_PKT_SIZE               EP0_MAX_PKT_SIZE
-#define TRANSFER_SIZE                  1024
+#define TRANSFER_SIZE                  64
 #define SETUP_BUF_BASE                 0
 #define SETUP_BUF_LEN                  8
 #define EP0_BUF_BASE                   (SETUP_BUF_BASE + SETUP_BUF_LEN)

@@ -83,4 +83,14 @@ $(TARGET).bin: $(TARGET).elf
 clean:
 	rm -f $(OBJS) $(TARGET).elf $(TARGET).hex $(TARGET).bin $(TARGET).map
 
-.PHONY: all clean
+recovery:
+	$(MAKE) clean
+	$(MAKE) all DEFS='$(DEFS) -DBOOTLOADER_FORCE_DFU=1'
+	@cp -f $(TARGET).bin $(TARGET)-recovery.bin
+	@echo "Wrote $(TARGET)-recovery.bin ($$(wc -c < $(TARGET)-recovery.bin) bytes)"
+
+known-good:
+	@git show 466fc3d:$(TARGET).bin > $(TARGET)-known-good.bin
+	@echo "Wrote $(TARGET)-known-good.bin from commit 466fc3d ($$(wc -c < $(TARGET)-known-good.bin) bytes)"
+
+.PHONY: all clean recovery known-good

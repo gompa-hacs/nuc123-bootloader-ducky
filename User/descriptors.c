@@ -67,7 +67,7 @@ const uint8_t gu8ConfigDescriptor[] =
     0xFF,   /*DetachTimeOut= 255 ms*/
     0x00,
     (TRANSFER_SIZE & 0x00FF),
-    (TRANSFER_SIZE & 0xFF00) >> 8, /* TransferSize = 1024 Byte*/
+    (TRANSFER_SIZE & 0xFF00) >> 8, /* TransferSize = 64 bytes */
     0x10,                          /* bcdDFUVersion = 1.1 */
     0x01
 };
