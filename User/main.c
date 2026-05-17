@@ -35,6 +35,41 @@ uint8_t isEscapePressed(void)
     return pressed;
 }
 
+/* QMK matrix [2,3]=D (row B5, col C12), [2,9]=L (row B5, col A14). Before USB mux on PA14. */
+static void matrix_settle_delay(void)
+{
+    volatile uint32_t i;
+
+    for(i = 0; i < 20000; i++)
+        __NOP();
+}
+
+uint8_t isDplusLPressed(void)
+{
+    uint32_t pb_pmd, pc_pmd, pa_pmd;
+    uint8_t d_pressed, l_pressed;
+
+    pb_pmd = PB->PMD;
+    pc_pmd = PC->PMD;
+    pa_pmd = PA->PMD;
+
+    PB->PMD = (pb_pmd & ~(0x3UL << 10)) | (0x1UL << 10);
+    PB->DOUT &= ~(1UL << 5);
+    PC->PMD = (pc_pmd & ~(0x3UL << 24)) | (0x3UL << 24);
+    PA->PMD = (pa_pmd & ~(0x3UL << 28)) | (0x3UL << 28);
+
+    matrix_settle_delay();
+
+    d_pressed = !((PC->PIN >> 12) & 1);
+    l_pressed = !((PA->PIN >> 14) & 1);
+
+    PB->PMD = (pb_pmd & ~(0x3UL << 10)) | (0x3UL << 10);
+    PC->PMD = (pc_pmd & ~(0x3UL << 24)) | (0x3UL << 24);
+    PA->PMD = (pa_pmd & ~(0x3UL << 28)) | (0x3UL << 28);
+
+    return d_pressed && l_pressed;
+}
+
 void SYS_Init(void)
 {
     SYS->GPA_MFPH = (SYS->GPA_MFPH & ~(SYS_GPA_MFPH_GPA14_MFP_Msk | SYS_GPA_MFPH_GPA15_MFP_Msk))
@@ -59,15 +94,15 @@ void USBD_IRQHandler(void);
 int main(void)
 {
     SYS_UnlockReg();
-    SYS_Init();
 
-    /* recovery.bin: always DFU. Normal build: Esc at plug-in or QMK system reset */
-    if(isEscapePressed() || (SYS->RSTSRC & SYS_RSTSRC_RSTS_SYS_Msk)
+    /* Matrix scan before SYS_Init (PA14/PA15 become USB). recovery.bin: always DFU. */
+    if(isDplusLPressed() || (SYS->RSTSRC & SYS_RSTSRC_RSTS_SYS_Msk)
 #if defined(BOOTLOADER_FORCE_DFU)
        || 1
 #endif
       )
     {
+        SYS_Init();
         CLK->AHBCLK |= CLK_AHBCLK_ISP_EN_Msk;
         FMC->ISPCON |= FMC_ISPCON_ISPEN_Msk | FMC_ISPCON_APUEN_Msk | FMC_ISPCON_ISPFF_Msk;
         g_romSize = 0x8000;

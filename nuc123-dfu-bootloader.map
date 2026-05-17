@@ -1,17 +1,17 @@
 Archive member included to satisfy reference by file (symbol)
 
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
-                              /tmp/ccjAKcPw.ltrans0.ltrans.o (__gnu_thumb1_case_sqi)
+                              /tmp/ccDeCL4J.ltrans0.ltrans.o (__gnu_thumb1_case_sqi)
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
-                              /tmp/ccjAKcPw.ltrans0.ltrans.o (__gnu_thumb1_case_uqi)
+                              /tmp/ccDeCL4J.ltrans0.ltrans.o (__gnu_thumb1_case_uqi)
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
-                              /tmp/ccjAKcPw.ltrans0.ltrans.o (__gnu_thumb1_case_shi)
+                              /tmp/ccDeCL4J.ltrans0.ltrans.o (__gnu_thumb1_case_shi)
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
-                              /tmp/ccjAKcPw.ltrans0.ltrans.o (__aeabi_uidiv)
+                              /tmp/ccDeCL4J.ltrans0.ltrans.o (__aeabi_uidiv)
 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
                               /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o) (__aeabi_idiv0)
 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
-                              /tmp/ccjAKcPw.ltrans0.ltrans.o (memset)
+                              /tmp/ccDeCL4J.ltrans0.ltrans.o (memset)
 
 Discarded input sections
 
@@ -41,7 +41,7 @@ SRAM             0x20000000         0x00003000         xrw
 Linker script and memory map
 
 LOAD CMSIS/system_NUC123.o
-LOAD /tmp/ccjAKcPw.ltrans0.ltrans.o
+LOAD /tmp/ccDeCL4J.ltrans0.ltrans.o
 LOAD Library/clk.o
 LOAD Library/sys.o
 LOAD User/descriptors.o
@@ -65,89 +65,89 @@ LOAD /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/
 LOAD /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libnosys.a
 END GROUP
 
-.text           0x00100000      0xdd0
+.text           0x00100000      0xdf8
  *(.isr_vector)
  .isr_vector    0x00100000       0xbc User/startup_NUC123_user.o
                 0x00100000                __Vectors
  *(.text*)
- .text          0x001000bc      0x874 /tmp/ccjAKcPw.ltrans0.ltrans.o
-                0x001004b4                SystemInit
-                0x001004b6                USBD_IRQHandler
- .text.startup  0x00100930      0x2c8 /tmp/ccjAKcPw.ltrans0.ltrans.o
-                0x00100930                main
- .text          0x00100bf8       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
-                0x00100bf8                __gnu_thumb1_case_sqi
- .text          0x00100c0c       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
-                0x00100c0c                __gnu_thumb1_case_uqi
- .text          0x00100c20       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
-                0x00100c20                __gnu_thumb1_case_shi
- .text          0x00100c34       0x8c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
-                0x00100c34                __udivsi3
-                0x00100c34                __aeabi_uidiv
-                0x00100cac                __aeabi_uidivmod
- .text          0x00100cc0        0x4 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
-                0x00100cc0                __aeabi_ldiv0
-                0x00100cc0                __aeabi_idiv0
- .text.memset   0x00100cc4       0x10 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
-                0x00100cc4                memset
- .text          0x00100cd4       0x6c User/startup_NUC123_user.o
-                0x00100cd4                Reset_Handler
-                0x00100d1c                GPCDF_IRQHandler
-                0x00100d1c                I2C0_IRQHandler
-                0x00100d1c                HardFault_Handler
-                0x00100d1c                SysTick_Handler
-                0x00100d1c                PendSV_Handler
-                0x00100d1c                NMI_Handler
-                0x00100d1c                I2C1_IRQHandler
-                0x00100d1c                UART1_IRQHandler
-                0x00100d1c                PS2_IRQHandler
-                0x00100d1c                CAN1_IRQHandler
-                0x00100d1c                UART0_IRQHandler
-                0x00100d1c                SPI1_IRQHandler
-                0x00100d1c                TMR0_IRQHandler
-                0x00100d1c                IRC_IRQHandler
-                0x00100d1c                I2S_IRQHandler
-                0x00100d1c                PWRWU_IRQHandler
-                0x00100d1c                EINT1_IRQHandler
-                0x00100d1c                PWMA_IRQHandler
-                0x00100d1c                Default_Handler
-                0x00100d1c                ADC_IRQHandler
-                0x00100d1c                TMR2_IRQHandler
-                0x00100d1c                BOD_IRQHandler
-                0x00100d1c                SPI2_IRQHandler
-                0x00100d1c                WDT_IRQHandler
-                0x00100d1c                SVC_Handler
-                0x00100d1c                PDMA_IRQHandler
-                0x00100d1c                GPAB_IRQHandler
-                0x00100d1c                EINT0_IRQHandler
-                0x00100d1c                CAN0_IRQHandler
-                0x00100d1c                TMR3_IRQHandler
-                0x00100d1c                SPI0_IRQHandler
-                0x00100d1c                TMR1_IRQHandler
+ .text          0x001000bc      0x848 /tmp/ccDeCL4J.ltrans0.ltrans.o
+                0x00100488                SystemInit
+                0x0010048a                USBD_IRQHandler
+ .text.startup  0x00100904      0x31c /tmp/ccDeCL4J.ltrans0.ltrans.o
+                0x00100904                main
+ .text          0x00100c20       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
+                0x00100c20                __gnu_thumb1_case_sqi
+ .text          0x00100c34       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_uqi.o)
+                0x00100c34                __gnu_thumb1_case_uqi
+ .text          0x00100c48       0x14 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_shi.o)
+                0x00100c48                __gnu_thumb1_case_shi
+ .text          0x00100c5c       0x8c /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_udivsi3.o)
+                0x00100c5c                __udivsi3
+                0x00100c5c                __aeabi_uidiv
+                0x00100cd4                __aeabi_uidivmod
+ .text          0x00100ce8        0x4 /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_dvmd_tls.o)
+                0x00100ce8                __aeabi_ldiv0
+                0x00100ce8                __aeabi_idiv0
+ .text.memset   0x00100cec       0x10 /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
+                0x00100cec                memset
+ .text          0x00100cfc       0x6c User/startup_NUC123_user.o
+                0x00100cfc                Reset_Handler
+                0x00100d44                GPCDF_IRQHandler
+                0x00100d44                I2C0_IRQHandler
+                0x00100d44                HardFault_Handler
+                0x00100d44                SysTick_Handler
+                0x00100d44                PendSV_Handler
+                0x00100d44                NMI_Handler
+                0x00100d44                I2C1_IRQHandler
+                0x00100d44                UART1_IRQHandler
+                0x00100d44                PS2_IRQHandler
+                0x00100d44                CAN1_IRQHandler
+                0x00100d44                UART0_IRQHandler
+                0x00100d44                SPI1_IRQHandler
+                0x00100d44                TMR0_IRQHandler
+                0x00100d44                IRC_IRQHandler
+                0x00100d44                I2S_IRQHandler
+                0x00100d44                PWRWU_IRQHandler
+                0x00100d44                EINT1_IRQHandler
+                0x00100d44                PWMA_IRQHandler
+                0x00100d44                Default_Handler
+                0x00100d44                ADC_IRQHandler
+                0x00100d44                TMR2_IRQHandler
+                0x00100d44                BOD_IRQHandler
+                0x00100d44                SPI2_IRQHandler
+                0x00100d44                WDT_IRQHandler
+                0x00100d44                SVC_Handler
+                0x00100d44                PDMA_IRQHandler
+                0x00100d44                GPAB_IRQHandler
+                0x00100d44                EINT0_IRQHandler
+                0x00100d44                CAN0_IRQHandler
+                0x00100d44                TMR3_IRQHandler
+                0x00100d44                SPI0_IRQHandler
+                0x00100d44                TMR1_IRQHandler
  *(.rodata*)
- .rodata        0x00100d40       0x8f /tmp/ccjAKcPw.ltrans0.ltrans.o
-                0x00100d78                g_ldrom_build_tag
-                0x00100dd0                        . = ALIGN (0x4)
- *fill*         0x00100dcf        0x1 
-                0x00100dd0                        _etext = .
+ .rodata        0x00100d68       0x8f /tmp/ccDeCL4J.ltrans0.ltrans.o
+                0x00100da0                g_ldrom_build_tag
+                0x00100df8                        . = ALIGN (0x4)
+ *fill*         0x00100df7        0x1 
+                0x00100df8                        _etext = .
 
-.glue_7         0x00100dd0        0x0
- .glue_7        0x00100dd0        0x0 linker stubs
+.glue_7         0x00100df8        0x0
+ .glue_7        0x00100df8        0x0 linker stubs
 
-.glue_7t        0x00100dd0        0x0
- .glue_7t       0x00100dd0        0x0 linker stubs
+.glue_7t        0x00100df8        0x0
+ .glue_7t       0x00100df8        0x0 linker stubs
 
-.vfp11_veneer   0x00100dd0        0x0
- .vfp11_veneer  0x00100dd0        0x0 linker stubs
+.vfp11_veneer   0x00100df8        0x0
+ .vfp11_veneer  0x00100df8        0x0 linker stubs
 
-.v4_bx          0x00100dd0        0x0
- .v4_bx         0x00100dd0        0x0 linker stubs
+.v4_bx          0x00100df8        0x0
+ .v4_bx         0x00100df8        0x0 linker stubs
 
-.iplt           0x00100dd0        0x0
- .iplt          0x00100dd0        0x0 User/startup_NUC123_user.o
+.iplt           0x00100df8        0x0
+ .iplt          0x00100df8        0x0 User/startup_NUC123_user.o
 
-.rel.dyn        0x00100dd0        0x0
- .rel.iplt      0x00100dd0        0x0 User/startup_NUC123_user.o
+.rel.dyn        0x00100df8        0x0
+ .rel.iplt      0x00100df8        0x0 User/startup_NUC123_user.o
 
 .stack          0x20000000      0x800
                 0x20000000                        . = ALIGN (0x8)
@@ -156,21 +156,21 @@ END GROUP
                 0x20000800                __initial_sp
                 0x20000800                        . = ALIGN (0x8)
 
-.data           0x20000800       0x18 load address 0x00100dd0
+.data           0x20000800       0x18 load address 0x00100df8
                 0x20000800                        _sdata = .
  *(.data*)
- .data          0x20000800       0x18 /tmp/ccjAKcPw.ltrans0.ltrans.o
+ .data          0x20000800       0x18 /tmp/ccDeCL4J.ltrans0.ltrans.o
                 0x20000818                        . = ALIGN (0x4)
                 0x20000818                        _edata = .
-                0x00100dd0                        _sidata = LOADADDR (.data)
+                0x00100df8                        _sidata = LOADADDR (.data)
 
-.igot.plt       0x20000818        0x0 load address 0x00100de8
+.igot.plt       0x20000818        0x0 load address 0x00100e10
  .igot.plt      0x20000818        0x0 User/startup_NUC123_user.o
 
-.bss            0x20000818       0xa4 load address 0x00100de8
+.bss            0x20000818       0xa4 load address 0x00100e10
                 0x20000818                        _sbss = .
  *(.bss*)
- .bss           0x20000818       0xa2 /tmp/ccjAKcPw.ltrans0.ltrans.o
+ .bss           0x20000818       0xa2 /tmp/ccDeCL4J.ltrans0.ltrans.o
  *(COMMON)
                 0x200008bc                        . = ALIGN (0x4)
  *fill*         0x200008ba        0x2 
@@ -184,14 +184,14 @@ OUTPUT(nuc123-dfu-bootloader.elf elf32-littlearm)
 LOAD linker stubs
 
 .comment        0x00000000       0x1e
- .comment       0x00000000       0x1e /tmp/ccjAKcPw.ltrans0.ltrans.o
+ .comment       0x00000000       0x1e /tmp/ccDeCL4J.ltrans0.ltrans.o
                                  0x1f (size before relaxing)
  .comment       0x0000001e       0x1f /usr/lib/gcc/arm-none-eabi/14.2.0/../../../../arm-none-eabi/lib/thumb/v6-m/nofp/libc_nano.a(libc_a-memset.o)
 
 .ARM.attributes
                 0x00000000       0x2a
  .ARM.attributes
-                0x00000000       0x2a /tmp/ccjAKcPw.ltrans0.ltrans.o
+                0x00000000       0x2a /tmp/ccDeCL4J.ltrans0.ltrans.o
  .ARM.attributes
                 0x0000002a       0x1e /usr/lib/gcc/arm-none-eabi/14.2.0/thumb/v6-m/nofp/libgcc.a(_thumb1_case_sqi.o)
  .ARM.attributes
